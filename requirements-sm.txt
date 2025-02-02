@@ -1,0 +1,26 @@
+--extra-index-url https://download.pytorch.org/whl/cu126
+--extra-index-url https://github.com/ajhamdi/mvtorch
+
+torch
+torchvision
+torchaudio
+einops
+imageio
+matplotlib
+moviepy
+pandas
+PyQt5
+SoccerNet
+mvtorch
+av
+pyav
+moviepy
+numpy
+imageio
+decorator
+tqdm
+Pillow
+scipy
+pydub
+audiofile
+opencv-python
