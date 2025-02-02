@@ -1,5 +1,4 @@
 --extra-index-url https://download.pytorch.org/whl/cu126
---extra-index-url https://github.com/ajhamdi/mvtorch
 
 torch
 torchvision
@@ -11,10 +10,9 @@ moviepy
 pandas
 PyQt5
 SoccerNet
-mvtorch
 av
 pyav
-moviepy
+moviepy==1.0.3
 numpy
 imageio
 decorator
@@ -24,3 +22,4 @@ scipy
 pydub
 audiofile
 opencv-python
+git+https://github.com/ajhamdi/mvtorch
