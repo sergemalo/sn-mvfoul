@@ -26,3 +26,10 @@ This fork uses the same GPL 3.0 license.
 
 5. Install required Python packages
 ```pip install -r requirements-sm.txt```
+
+# Running VARS
+You can run the VARS GUI Python to do "manual inference" on a specific set of videos.  
+```cd VARS interface```
+```python main.py```
+Then, you can open multiple videos from either the "dataset" subfolder (there are only 4 examples) or you can use video from the dataset you can download after signing the NDA.
+
