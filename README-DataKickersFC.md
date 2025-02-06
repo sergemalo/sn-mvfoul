@@ -14,7 +14,7 @@ This fork uses the same GPL 3.0 license.
 * [K-Lite Codec Pack Basic](https://codecguide.com/download_k-lite_codec_pack_basic.htm)  
 * Download [VARS weights](https://drive.google.com/drive/folders/1N0Lv-lcpW8w34_iySc7pnlQ6eFMSDvXn?usp=share_link)  
 
-2. Clone this repo and cd to to it
+2. Clone this repo and cd to it
 ```git clone https://github.com/sergemalo/sn-mvfoul```
 ```cd sn-mvfoul```
 

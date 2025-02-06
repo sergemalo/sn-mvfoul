@@ -1,5 +1,8 @@
 venv*/
 *.tar
+VARS model/models
+VARS model/mvfouls
+VARS model/VARS
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
