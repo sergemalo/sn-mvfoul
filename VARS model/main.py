@@ -12,7 +12,7 @@ from model import MVNetwork
 from torchvision.models.video import R3D_18_Weights, R2Plus1D_18_Weights, MViT_V2_S_Weights, Swin3D_T_Weights
 
 
-
+# This function ensures that all provided arguments are valid
 def checkArguments():
 
     # args.num_views
@@ -57,9 +57,16 @@ def checkArguments():
         print("Possible number for the fps are between 1 and 25")
         exit()
 
+    # args.only_evaluation
+    if args.only_evaluation not in [0,1,2,3]:
+        print("Invalid task option (only_evaluation)")
+        print("Possible arguments are: 0, 1, 2, 3")
+        exit()
+
 
 def main(*args):
 
+    # Retrieve the script argument values
     if args:
         args = args[0]
         LR = args.LR
@@ -68,7 +75,6 @@ def main(*args):
         start_frame = args.start_frame
         end_frame = args.end_frame
         weight_decay = args.weight_decay
-        
         model_name = args.model_name
         pre_model = args.pre_model
         num_views = args.num_views
@@ -87,6 +93,7 @@ def main(*args):
     else:
         print("EXIT")
         exit()
+
 
     # Logging information
     numeric_level = getattr(logging, 'INFO'.upper(), None)
@@ -110,6 +117,7 @@ def main(*args):
             logging.FileHandler(log_path),
             logging.StreamHandler()
         ])
+
 
     # Initialize the data augmentation
     if data_aug == 'Yes':
@@ -137,54 +145,43 @@ def main(*args):
         print("Possible options are: r3d_18, s3d, mc3_18, mvit_v2_s and r2plus1d_18")
         print("We continue with r2plus1d_18")
     
+
+    # Create only the relevant Datasets and DataLoader for this task
     if only_evaluation == 0:
         dataset_Test2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Test', num_views = 5, 
-        transform_model=transforms_model)
+                                         transform_model=transforms_model)
         
-        test_loader2 = torch.utils.data.DataLoader(dataset_Test2,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
+        test_loader2 = torch.utils.data.DataLoader(dataset_Test2, batch_size=1, shuffle=False, num_workers=max_num_worker, pin_memory=True)
+
     elif only_evaluation == 1:
         dataset_Chall = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Chall', num_views = 5, 
-        transform_model=transforms_model)
+                                         transform_model=transforms_model)
 
-        chall_loader2 = torch.utils.data.DataLoader(dataset_Chall,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
+        chall_loader2 = torch.utils.data.DataLoader(dataset_Chall, batch_size=1, shuffle=False, num_workers=max_num_worker, pin_memory=True)
+
     elif only_evaluation == 2:
         dataset_Test2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Test', num_views = 5, 
-        transform_model=transforms_model)
+                                         transform_model=transforms_model)
         dataset_Chall = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Chall', num_views = 5, 
-        transform_model=transforms_model)
+                                         transform_model=transforms_model)
 
-        test_loader2 = torch.utils.data.DataLoader(dataset_Test2,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
-        
-        chall_loader2 = torch.utils.data.DataLoader(dataset_Chall,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
+        test_loader2 = torch.utils.data.DataLoader(dataset_Test2, batch_size=1, shuffle=False, num_workers=max_num_worker, pin_memory=True)
+        chall_loader2 = torch.utils.data.DataLoader(dataset_Chall, batch_size=1, shuffle=False, num_workers=max_num_worker, pin_memory=True)
+
     else:
         # Create Train Validation and Test datasets
-        dataset_Train = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Train',
-            num_views = num_views, transform=transformAug, transform_model=transforms_model)
+        dataset_Train = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Train', num_views = num_views, 
+                                         transform=transformAug, transform_model=transforms_model)
         dataset_Valid2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Valid', num_views = 5, 
-            transform_model=transforms_model)
+                                          transform_model=transforms_model)
         dataset_Test2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Test', num_views = 5, 
-            transform_model=transforms_model)
+                                         transform_model=transforms_model)
 
         # Create the dataloaders for train validation and test datasets
-        train_loader = torch.utils.data.DataLoader(dataset_Train,
-            batch_size=batch_size, shuffle=True,
-            num_workers=max_num_worker, pin_memory=True)
+        train_loader = torch.utils.data.DataLoader(dataset_Train, batch_size=batch_size, shuffle=True, num_workers=max_num_worker, pin_memory=True)
+        val_loader2 = torch.utils.data.DataLoader(dataset_Valid2, batch_size=1, shuffle=False, num_workers=max_num_worker, pin_memory=True)
+        test_loader2 = torch.utils.data.DataLoader(dataset_Test2, batch_size=1, shuffle=False, num_workers=max_num_worker, pin_memory=True)
 
-        val_loader2 = torch.utils.data.DataLoader(dataset_Valid2,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
-        
-        test_loader2 = torch.utils.data.DataLoader(dataset_Test2,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
 
     ###################################
     #       LOADING THE MODEL         #
@@ -196,6 +193,8 @@ def main(*args):
         load = torch.load(path_model)
         model.load_state_dict(load['state_dict'])
 
+
+    # Set up training parameters if training
     if only_evaluation == 3:
 
         optimizer = torch.optim.AdamW(model.parameters(), lr=LR, 
@@ -267,6 +266,7 @@ def main(*args):
         results = evaluate(os.path.join(path, "Chall", "annotations.json"), prediction_file)
         print("CHALL")
         print(results)
+
     else:
         trainer(train_loader, val_loader2, test_loader2, model, optimizer, scheduler, criterion, 
                 best_model_path, epoch_start, model_name=model_name, path_dataset=path, max_epochs=max_epochs)
