@@ -20,6 +20,8 @@ dependencies:
   - scikit-learn
   - pip
   - pip:
+    - --extra-index-url https://download.pytorch.org/whl/cu117
+    - --extra-index-url https://pypi.nvidia.com
     - torch
     - torchvision
     - torchaudio
@@ -28,5 +30,9 @@ dependencies:
     - pyav
     - pydub
     - audiofile
+    - mmcv
+    - git+https://github.com/facebookresearch/xformers@v0.0.18
     - git+https://github.com/ajhamdi/mvtorch 
+    - git+https://github.com/facebookresearch/dinov2
+
   
