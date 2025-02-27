@@ -22,4 +22,5 @@ scipy
 pydub
 audiofile
 opencv-python
+scikit_learn
 git+https://github.com/ajhamdi/mvtorch
