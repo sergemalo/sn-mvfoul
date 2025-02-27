@@ -6,6 +6,11 @@ import urllib
 import matplotlib
 from functools import partial
 from PIL import Image
+import numpy as np
+import cv2
+from typing import Union, Tuple
+import torch.utils.data
+from pathlib import Path
 
 import mmcv
 from mmcv.runner import load_checkpoint
@@ -64,6 +69,91 @@ class Depther(torch.nn.Module):
         self._load_checkpoint()
         self.depth_transform = self._make_depth_transform()
 
+    def get_depth_for_video(
+        self, 
+        video_path: Union[str, Path], 
+        output_path: Union[str, Path],
+        batch_size: int = 4,
+        scale_factor: float = 1,
+        fps: int = None
+    ) -> None:
+        """Process a video to generate depth estimation.
+        
+        Args:
+            video_path: Path to the input video
+            output_path: Path where to save the depth video
+            batch_size: Number of frames to process simultaneously
+            scale_factor: Scale factor to apply to the images
+            fps: Frames per second for the output video. If None, uses the input video fps
+        """
+        # Open the video
+        cap = cv2.VideoCapture(str(video_path))
+        if not cap.isOpened():
+            raise ValueError(f"Could not open video: {video_path}")
+        
+        # Get video properties
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        original_fps = cap.get(cv2.CAP_PROP_FPS)
+        
+        # Configure video output
+        output_fps = fps if fps is not None else original_fps
+        new_width = int(width * scale_factor)
+        new_height = int(height * scale_factor)
+        
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(
+            str(output_path), 
+            fourcc, 
+            output_fps,
+            (new_width, new_height),
+            isColor=True
+        )
+
+        try:
+            # Process video in batches
+            current_batch = []
+            
+            for _ in range(total_frames):
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                
+                # Convert BGR frame to RGB and create PIL image
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                pil_image = Image.fromarray(frame_rgb)
+                
+                # Resize if necessary
+                if scale_factor != 1:
+                    pil_image = pil_image.resize((new_width, new_height))
+                
+                # Add image to current batch
+                current_batch.append(self.depth_transform(pil_image))
+                
+                # Process batch when full or at the end
+                if len(current_batch) == batch_size or _ == total_frames - 1:
+                    # Create batch tensor
+                    batch_tensor = torch.stack(current_batch).cuda()
+                    
+                    # Process the batch
+                    with torch.inference_mode():
+                        results = self.model.whole_inference(batch_tensor, img_meta=None, rescale=True)
+                    
+                    # Process each result from the batch
+                    for result in results:
+                        depth_image = self._render_depth(result.cpu())
+                        # Convert depth image to BGR for OpenCV
+                        depth_frame = cv2.cvtColor(np.array(depth_image), cv2.COLOR_RGB2BGR)
+                        out.write(depth_frame)
+                    
+                    # Reset batch
+                    current_batch = []
+        
+        finally:
+            # Release resources
+            cap.release()
+            out.release()
 
     def get_depth_for_image(self, image: Image.Image, scale_factor: float = 1) -> Image.Image:
 
