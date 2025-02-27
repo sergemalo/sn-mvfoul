@@ -13,7 +13,7 @@ from torchvision.models.video import R3D_18_Weights, R2Plus1D_18_Weights, MViT_V
 
 
 # This function ensures that all provided arguments are valid
-def checkArguments():
+def checkArguments(args):
 
     # args.num_views
     if args.num_views > 5 or  args.num_views < 1:
@@ -62,6 +62,7 @@ def checkArguments():
         print("Invalid task option (only_evaluation)")
         print("Possible arguments are: 0, 1, 2, 3")
         exit()
+
 
 
 def main(*args):
@@ -119,7 +120,9 @@ def main(*args):
         ])
 
 
-    # Initialize the data augmentation
+    # Initialize the data augmentation, only used for the training data
+    # Apply random transformations to improve generalization
+    # DINO MIGHT GO HERE
     if data_aug == 'Yes':
         transformAug = transforms.Compose([
                                           transforms.RandomAffine(degrees=(0, 0), translate=(0.1, 0.1), scale=(0.9, 1)),
@@ -132,12 +135,12 @@ def main(*args):
         transformAug = None
 
     if pre_model == "r3d_18":
-        transforms_model = R3D_18_Weights.KINETICS400_V1.transforms()            
+        transforms_model = R3D_18_Weights.KINETICS400_V1.transforms()           # .transforms(): returns a set of data preprocessing transformations to prepare input
     elif pre_model == "r2plus1d_18":
         transforms_model = R2Plus1D_18_Weights.KINETICS400_V1.transforms()
     elif pre_model == "mvit_v2_s":
         transforms_model = MViT_V2_S_Weights.KINETICS400_V1.transforms()
-    elif pre_model == "swin3d_t":
+    elif pre_model == "swin3d_t":                                               # SWIN GOES HERE
         transforms_model = Swin3D_T_Weights.KINETICS400_V1.transforms()
     else:
         transforms_model = R2Plus1D_18_Weights.KINETICS400_V1.transforms()
@@ -305,7 +308,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     ## Checking if arguments are valid
-    checkArguments()
+    checkArguments(args)
 
     # Setup the GPU
     if args.GPU >= 0:

@@ -11,12 +11,7 @@ class WeightedAggregate(nn.Module):
 
         r1 = -1
         r2 = 1
-        self.attention_weights = nn.Parameter((r1 - r2) * torch.rand(feat_dim, feat_dim) + r2) # learnable transformation matrix, Dimension (E, E)
-
-        self.normReLu = nn.Sequential(
-            nn.LayerNorm(feat_dim),
-            nn.ReLU()
-        )        
+        self.attention_weights = nn.Parameter((r1 - r2) * torch.rand(feat_dim, feat_dim) + r2) # initialize learnable transformation matrix, Dimension (E, E)      
 
         self.relu = nn.ReLU()
    
@@ -31,7 +26,6 @@ class WeightedAggregate(nn.Module):
 
 
         ##################### VIEW ATTENTION #####################
-
         # Transform output embeddings
         aux = torch.matmul(aux, self.attention_weights) # Dimension (B, V, E)
 
@@ -87,6 +81,7 @@ class ViewAvgAggregate(nn.Module):
         aux = unbatch_tensor(self.model(batch_tensor(mvimages, dim=1, squeeze=True)), B, dim=1, unsqueeze=True)
         pooled_view = torch.mean(aux, dim=1)
         return pooled_view.squeeze(), aux
+
 
 
 class MVAggregate(nn.Module):
