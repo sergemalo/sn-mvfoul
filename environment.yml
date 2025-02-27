@@ -1,0 +1,32 @@
+name: mvfoul
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - einops
+  - imageio
+  - matplotlib
+  - moviepy=1.0.3
+  - pandas
+  - pyqt
+  - numpy
+  - pillow
+  - scipy
+  - tqdm
+  - opencv
+  - scikit-learn
+  - pip
+  - pip:
+    - torch
+    - torchvision
+    - torchaudio
+    - soccernet
+    - av
+    - pyav
+    - pydub
+    - audiofile
+    - git+https://github.com/ajhamdi/mvtorch 
+  
