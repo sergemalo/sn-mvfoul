@@ -4,10 +4,9 @@ from torch import nn
 
 
 class WeightedAggregate(nn.Module):
-    def __init__(self,  model, feat_dim, lifting_net=nn.Sequential()):
+    def __init__(self,  model, feat_dim):
         super().__init__()
         self.model = model
-        self.lifting_net = lifting_net
         self.feature_dim = feat_dim
 
         r1 = -1
@@ -28,7 +27,7 @@ class WeightedAggregate(nn.Module):
         B, V, C, D, H, W = mvimages.shape # Batch, Views, Channel, Depth, Height, Width
         # E = embedding dimension
 
-        aux = self.lifting_net(unbatch_tensor(self.model(batch_tensor(mvimages, dim=1, squeeze=True)), B, dim=1, unsqueeze=True)) # shape: (B, V, E)
+        aux = unbatch_tensor(self.model(batch_tensor(mvimages, dim=1, squeeze=True)), B, dim=1, unsqueeze=True) # shape: (B, V, E)
 
 
         ##################### VIEW ATTENTION #####################
@@ -60,67 +59,73 @@ class WeightedAggregate(nn.Module):
         return output.squeeze(), final_attention_weights
 
 
+
 class ViewMaxAggregate(nn.Module):
-    def __init__(self,  model, lifting_net=nn.Sequential()):
+    def __init__(self,  model):
         super().__init__()
         self.model = model
-        self.lifting_net = lifting_net
 
     def forward(self, mvimages):
         B, V, C, D, H, W = mvimages.shape # Batch, Views, Channel, Depth, Height, Width
-        aux = self.lifting_net(unbatch_tensor(self.model(batch_tensor(mvimages, dim=1, squeeze=True)), B, dim=1, unsqueeze=True))
+
+        # Get the video embeddings and apply maximum aggregation
+        aux = unbatch_tensor(self.model(batch_tensor(mvimages, dim=1, squeeze=True)), B, dim=1, unsqueeze=True)
         pooled_view = torch.max(aux, dim=1)[0]
         return pooled_view.squeeze(), aux
 
 
+
 class ViewAvgAggregate(nn.Module):
-    def __init__(self,  model, lifting_net=nn.Sequential()):
+    def __init__(self,  model):
         super().__init__()
         self.model = model
-        self.lifting_net = lifting_net
 
     def forward(self, mvimages):
         B, V, C, D, H, W = mvimages.shape # Batch, Views, Channel, Depth, Height, Width
-        aux = self.lifting_net(unbatch_tensor(self.model(batch_tensor(mvimages, dim=1, squeeze=True)), B, dim=1, unsqueeze=True))
+
+        # Get the video embeddings and apply average aggregation
+        aux = unbatch_tensor(self.model(batch_tensor(mvimages, dim=1, squeeze=True)), B, dim=1, unsqueeze=True)
         pooled_view = torch.mean(aux, dim=1)
         return pooled_view.squeeze(), aux
 
 
 class MVAggregate(nn.Module):
-    def __init__(self,  model, agr_type="max", feat_dim=400, lifting_net=nn.Sequential()):
+    def __init__(self,  model, agr_type="max", feat_dim=400):
         super().__init__()
         self.agr_type = agr_type
 
+        # MLP between aggregated embeddings and classifiers
         self.inter = nn.Sequential(
             nn.LayerNorm(feat_dim),
             nn.Linear(feat_dim, feat_dim),
             nn.Linear(feat_dim, feat_dim),
         )
 
+        # MLP for offense severity (task 2)
         self.fc_offence = nn.Sequential(
             nn.LayerNorm(feat_dim),
             nn.Linear(feat_dim, feat_dim),
             nn.Linear(feat_dim, 4)
         )
 
-
+        # MLP for foul classification (task 1)
         self.fc_action = nn.Sequential(
             nn.LayerNorm(feat_dim),
             nn.Linear(feat_dim, feat_dim),
             nn.Linear(feat_dim, 8)
         )
 
+        # Video encoder and aggregation
         if self.agr_type == "max":
-            self.aggregation_model = ViewMaxAggregate(model=model, lifting_net=lifting_net)
+            self.aggregation_model = ViewMaxAggregate(model=model)
         elif self.agr_type == "mean":
-            self.aggregation_model = ViewAvgAggregate(model=model, lifting_net=lifting_net)
+            self.aggregation_model = ViewAvgAggregate(model=model)
         else:
-            self.aggregation_model = WeightedAggregate(model=model, feat_dim=feat_dim, lifting_net=lifting_net)
+            self.aggregation_model = WeightedAggregate(model=model)
+
 
     def forward(self, mvimages):
-
         pooled_view, attention = self.aggregation_model(mvimages)
-
         inter = self.inter(pooled_view)
         pred_action = self.fc_action(inter)
         pred_offence_severity = self.fc_offence(inter)
