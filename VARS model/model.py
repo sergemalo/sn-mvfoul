@@ -11,35 +11,31 @@ from torchvision.models.video import swin3d_t, Swin3D_T_Weights
 
 class MVNetwork(torch.nn.Module):
 
-    def __init__(self, net_name='r2plus1d_18', agr_type='max'):
+    def __init__(self, vid_enc_name='r2plus1d_18', agr_type='max'):
         super().__init__()
 
-        self.net_name = net_name
+        self.vid_enc_name = vid_enc_name
         self.agr_type = agr_type
         
         self.feat_dim = 512
 
-        if net_name == "r3d_18":                            # ResNet
+        # Argument checked in main, one condition will be matched
+        if vid_enc_name == "r3d_18":                        # ResNet
             weights_model = R3D_18_Weights.DEFAULT          # KINETICS400_V1
-            network = r3d_18(weights=weights_model)
-        elif net_name == "r2plus1d_18":                     # R(2+1)D
+            vid_enc_model = r3d_18(weights=weights_model)
+        elif vid_enc_name == "r2plus1d_18":                 # R(2+1)D
             weights_model = R2Plus1D_18_Weights.DEFAULT     # KINETICS400_V1
-            network = r2plus1d_18(weights=weights_model)
-        elif net_name == "mvit_v2_s":                       # MViTv2 (Small)
+            vid_enc_model = r2plus1d_18(weights=weights_model)
+        elif vid_enc_name == "mvit_v2_s":                   # MViTv2 (Small)
             weights_model = MViT_V2_S_Weights.DEFAULT       # KINETICS400_V1
-            network = mvit_v2_s(weights=weights_model)
+            vid_enc_model = mvit_v2_s(weights=weights_model)
             self.feat_dim = 400
-        elif net_name == "swin3d_t":                        # Swin3d Transformer (Tiny)
+        elif vid_enc_name == "swin3d_t":                    # Swin3d Transformer (Tiny)
             weights_model = Swin3D_T_Weights.DEFAULT        # KINETICS400_V1
-            network = swin3d_t(weights=weights_model)
-        else:                                               # Warning message in main.py signals wrong network name
-            weights_model = R2Plus1D_18_Weights.DEFAULT     # Default is R(2+1)D
-            network = r2plus1d_18(weights=weights_model)
+            vid_enc_model = swin3d_t(weights=weights_model)
                 
-        network.fc = torch.nn.Sequential()
-
         self.mvnetwork = MVAggregate(
-            model=network,
+            vid_enc_model=vid_enc_model,
             agr_type=self.agr_type, 
             feat_dim=self.feat_dim, 
         )

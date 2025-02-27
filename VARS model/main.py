@@ -57,10 +57,16 @@ def checkArguments(args):
         print("Possible number for the fps are between 1 and 25")
         exit()
 
-    # args.only_evaluation
-    if args.only_evaluation not in [0,1,2,3]:
-        print("Invalid task option (only_evaluation)")
+    # args.evaluation_type
+    if args.evaluation_type not in [0,1,2,3]:
+        print("Invalid task option (evaluation_type)")
         print("Possible arguments are: 0, 1, 2, 3")
+        exit()
+
+    # args.vid_enc_name
+    if args.vid_enc_name not in ["r3d_18", "r2plus1d_18", "mvit_v2_s", "swin3d_t"]:
+        print("Invalid video encoder name (vid_enc_name)")
+        print("Possible options are: r3d_18, s3d, mc3_18, mvit_v2_s and r2plus1d_18")
         exit()
 
 
@@ -70,14 +76,14 @@ def main(*args):
     # Retrieve the script argument values
     if args:
         args = args[0]
-        LR = args.LR
+        lr = args.lr
         gamma = args.gamma
         step_size = args.step_size
         start_frame = args.start_frame
         end_frame = args.end_frame
         weight_decay = args.weight_decay
         model_name = args.model_name
-        pre_model = args.pre_model
+        vid_enc_name = args.vid_enc_name
         num_views = args.num_views
         fps = args.fps
         number_of_frames = int((args.end_frame - args.start_frame) / ((args.end_frame - args.start_frame) / (((args.end_frame - args.start_frame) / 25) * args.fps)))
@@ -89,7 +95,7 @@ def main(*args):
         max_num_worker = args.max_num_worker
         max_epochs = args.max_epochs
         continue_training = args.continue_training
-        only_evaluation = args.only_evaluation
+        evaluation_type = args.evaluation_type
         path_to_model_weights = args.path_to_model_weights
     else:
         print("EXIT")
@@ -101,10 +107,10 @@ def main(*args):
     if not isinstance(numeric_level, int):
         raise ValueError('Invalid log level: %s' % 'INFO')
 
-    os.makedirs(os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(pre_model, os.path.join(str(LR),
+    os.makedirs(os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(vid_enc_name, os.path.join(str(lr),
                             "_B" + str(batch_size) + "_F" + str(number_of_frames) + "_S" + "_G" + str(gamma) + "_Step" + str(step_size)))))), exist_ok=True)
 
-    best_model_path = os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(pre_model, os.path.join(str(LR),
+    best_model_path = os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(vid_enc_name, os.path.join(str(lr),
                             "_B" + str(batch_size) + "_F" + str(number_of_frames) + "_S" + "_G" + str(gamma) + "_Step" + str(step_size))))))
 
 
@@ -134,35 +140,31 @@ def main(*args):
     else:
         transformAug = None
 
-    if pre_model == "r3d_18":
+    # At this point vid_enc_name is a valid argument, so one condition must be satisfied
+    if vid_enc_name == "r3d_18":
         transforms_model = R3D_18_Weights.KINETICS400_V1.transforms()           # .transforms(): returns a set of data preprocessing transformations to prepare input
-    elif pre_model == "r2plus1d_18":
+    elif vid_enc_name == "r2plus1d_18":
         transforms_model = R2Plus1D_18_Weights.KINETICS400_V1.transforms()
-    elif pre_model == "mvit_v2_s":
+    elif vid_enc_name == "mvit_v2_s":
         transforms_model = MViT_V2_S_Weights.KINETICS400_V1.transforms()
-    elif pre_model == "swin3d_t":                                               # SWIN GOES HERE
+    elif vid_enc_name == "swin3d_t":                                                 # SWIN GOES HERE
         transforms_model = Swin3D_T_Weights.KINETICS400_V1.transforms()
-    else:
-        transforms_model = R2Plus1D_18_Weights.KINETICS400_V1.transforms()
-        print("Warning: Could not find the desired pretrained model")
-        print("Possible options are: r3d_18, s3d, mc3_18, mvit_v2_s and r2plus1d_18")
-        print("We continue with r2plus1d_18")
     
 
     # Create only the relevant Datasets and DataLoader for this task
-    if only_evaluation == 0:
+    if evaluation_type == 0:
         dataset_Test2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Test', num_views = 5, 
                                          transform_model=transforms_model)
         
         test_loader2 = torch.utils.data.DataLoader(dataset_Test2, batch_size=1, shuffle=False, num_workers=max_num_worker, pin_memory=True)
 
-    elif only_evaluation == 1:
+    elif evaluation_type == 1:
         dataset_Chall = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Chall', num_views = 5, 
                                          transform_model=transforms_model)
 
         chall_loader2 = torch.utils.data.DataLoader(dataset_Chall, batch_size=1, shuffle=False, num_workers=max_num_worker, pin_memory=True)
 
-    elif only_evaluation == 2:
+    elif evaluation_type == 2:
         dataset_Test2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Test', num_views = 5, 
                                          transform_model=transforms_model)
         dataset_Chall = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Chall', num_views = 5, 
@@ -189,7 +191,7 @@ def main(*args):
     ###################################
     #       LOADING THE MODEL         #
     ###################################
-    model = MVNetwork(net_name=pre_model, agr_type=pooling_type).cuda()
+    model = MVNetwork(vid_enc_name=vid_enc_name, agr_type=pooling_type).cuda()
 
     if path_to_model_weights != "":
         path_model = os.path.join(path_to_model_weights)
@@ -198,14 +200,13 @@ def main(*args):
 
 
     # Set up training parameters if training
-    if only_evaluation == 3:
+    if evaluation_type == 3:
 
-        optimizer = torch.optim.AdamW(model.parameters(), lr=LR, 
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr, 
                                     betas=(0.9, 0.999), eps=1e-07, 
                                     weight_decay=weight_decay, amsgrad=False)
         
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
-
         epoch_start = 0
 
         if continue_training:
@@ -228,7 +229,7 @@ def main(*args):
 
 
     # Start training or evaluation
-    if only_evaluation == 0:
+    if evaluation_type == 0:
         prediction_file = evaluation(
             test_loader2,
             model,
@@ -238,7 +239,7 @@ def main(*args):
         print("TEST")
         print(results)
 
-    elif only_evaluation == 1:
+    elif evaluation_type == 1:
         prediction_file = evaluation(
             chall_loader2,
             model,
@@ -249,7 +250,7 @@ def main(*args):
         print("CHALL")
         print(results)
 
-    elif only_evaluation == 2:
+    elif evaluation_type == 2:
         prediction_file = evaluation(
             test_loader2,
             model,
@@ -285,14 +286,14 @@ if __name__ == '__main__':
     parser.add_argument('--max_epochs',   required=False, type=int,   default=60,     help='Maximum number of epochs' )
     parser.add_argument('--model_name',   required=False, type=str,   default="VARS",     help='named of the model to save' )
     parser.add_argument('--batch_size', required=False, type=int,   default=2,     help='Batch size' )
-    parser.add_argument('--LR',       required=False, type=float,   default=1e-04, help='Learning Rate' )
+    parser.add_argument('--lr',       required=False, type=float,   default=1e-04, help='Learning Rate' )
     parser.add_argument('--GPU',        required=False, type=int,   default=-1,     help='ID of the GPU to use' )
     parser.add_argument('--max_num_worker',   required=False, type=int,   default=1, help='number of worker to load data')
     parser.add_argument('--loglevel',   required=False, type=str,   default='INFO', help='logging level')
     parser.add_argument("--continue_training", required=False, action='store_true', help="Continue training")
     parser.add_argument("--num_views", required=False, type=int, default=5, help="Number of views")
     parser.add_argument("--data_aug", required=False, type=str, default="Yes", help="Data augmentation")
-    parser.add_argument("--pre_model", required=False, type=str, default="r2plus1d_18", help="Name of the pretrained model")
+    parser.add_argument("--vid_enc_name", required=False, type=str, default="r2plus1d_18", help="Name of the video encoder model")
     parser.add_argument("--pooling_type", required=False, type=str, default="max", help="Which type of pooling should be done")
     parser.add_argument("--weighted_loss", required=False, type=str, default="Yes", help="If the loss should be weighted")
     parser.add_argument("--start_frame", required=False, type=int, default=0, help="The starting frame")
@@ -301,8 +302,7 @@ if __name__ == '__main__':
     parser.add_argument("--step_size", required=False, type=int, default=3, help="StepLR parameter")
     parser.add_argument("--gamma", required=False, type=float, default=0.1, help="StepLR parameter")
     parser.add_argument("--weight_decay", required=False, type=float, default=0.001, help="Weight decacy")
-
-    parser.add_argument("--only_evaluation", required=False, type=int, default=3, help="Only evaluation, 0 = on test set, 1 = on chall set, 2 = on both sets and 3 = train/valid/test")
+    parser.add_argument("--evaluation_type", required=False, type=int, default=3, help="0 = on test set, 1 = on chall set, 2 = on both sets and 3 = train/valid/test")
     parser.add_argument("--path_to_model_weights", required=False, type=str, default="", help="Path to the model weights")
 
     args = parser.parse_args()
