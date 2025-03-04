@@ -144,7 +144,13 @@ def train(dataloader,
                 pbar.update()
 
             # compute output
-            outputs_offence_severity, outputs_action, _ = model(mvclips)
+            if (train):
+                print("------------------ TRAINING ------------------")
+                outputs_offence_severity, outputs_action, _ = model(mvclips)
+            else:
+                print("------------------ NOT NOT TRAINING ------------------")
+                with torch.no_grad():
+                    outputs_offence_severity, outputs_action, _ = model(mvclips)
             
             if len(action) == 1:
                 preds_sev = torch.argmax(outputs_offence_severity, 0)
