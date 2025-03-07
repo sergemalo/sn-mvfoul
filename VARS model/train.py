@@ -108,7 +108,9 @@ def trainer(train_loader,
             print("***** SAVING MODEL *****")
             path_aux = os.path.join(best_model_path, str(epoch+1) + "_model.pth.tar")
             torch.save(state, path_aux)
-        
+
+    print("###################### TRAINER DONE ###################")
+
     return
 
 def train(dataloader,

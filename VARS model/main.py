@@ -294,6 +294,7 @@ def main(*args):
         trainer(train_loader, val_loader2, test_loader2, model, optimizer, scheduler, criterion, 
                 best_model_path, epoch_start, model_name=model_name, path_dataset=path, max_epochs=max_epochs)
         
+    print("--> MAIN DONE! ")
     return 0
 
 def printHyperparameters(args): 
