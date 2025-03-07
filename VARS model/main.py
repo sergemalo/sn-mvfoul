@@ -89,7 +89,7 @@ def main(*args):
         only_evaluation = args.only_evaluation
         path_to_model_weights = args.path_to_model_weights
     else:
-        print("EXIT")
+        print("ERROR: No arguments given.")
         exit()
 
     # Logging information
@@ -144,20 +144,25 @@ def main(*args):
         print("We continue with r2plus1d_18")
     
     if only_evaluation == 0:
+        print("--> ONLY Evaluating on the test set")
         dataset_Test2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Test', num_views = 5, 
         transform_model=transforms_model)
         
         test_loader2 = torch.utils.data.DataLoader(dataset_Test2,
             batch_size=1, shuffle=False,
             num_workers=max_num_worker, pin_memory=True)
+        
     elif only_evaluation == 1:
+        print("--> ONLY Evaluating on the challenge set")
         dataset_Chall = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Chall', num_views = 5, 
         transform_model=transforms_model)
 
         chall_loader2 = torch.utils.data.DataLoader(dataset_Chall,
             batch_size=1, shuffle=False,
             num_workers=max_num_worker, pin_memory=True)
+        
     elif only_evaluation == 2:
+        print("--> ONLY Evaluating on the test and challenge set")
         dataset_Test2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Test', num_views = 5, 
         transform_model=transforms_model)
         dataset_Chall = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Chall', num_views = 5, 
@@ -171,6 +176,8 @@ def main(*args):
             batch_size=1, shuffle=False,
             num_workers=max_num_worker, pin_memory=True)
     else:
+        print(f"--> Training and validation for {max_epochs} epcohs, and then evaluation on the test")
+
         # Create Train Validation and Test datasets
         dataset_Train = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Train',
             num_views = num_views, transform=transformAug, transform_model=transforms_model)
@@ -192,27 +199,29 @@ def main(*args):
             batch_size=1, shuffle=False,
             num_workers=max_num_worker, pin_memory=True)
 
-    ###################################
-    #       LOADING THE MODEL         #
-    ###################################
+    print(f"--> Creating the model: {pre_model} with pooling: {pooling_type}")
     model = MVNetwork(net_name=pre_model, agr_type=pooling_type).cuda()
 
     if path_to_model_weights != "":
+        print("--> Loading model weights from: ", path_to_model_weights)
         path_model = os.path.join(path_to_model_weights)
         load = torch.load(path_model)
         model.load_state_dict(load['state_dict'])
 
     if only_evaluation == 3:
-
-        optimizer = torch.optim.AdamW(model.parameters(), lr=LR, 
-                                    betas=(0.9, 0.999), eps=1e-07, 
-                                    weight_decay=weight_decay, amsgrad=False)
+        print("--> Optimizer: AdamW")
+        optimizer = torch.optim.AdamW(model.parameters(),
+                                      lr=LR, 
+                                      betas=(0.9, 0.999),
+                                      eps=1e-07, 
+                                      weight_decay=weight_decay,
+                                      amsgrad=False)
         
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
-
         epoch_start = 0
 
         if continue_training:
+            print("--> Conitnuing training from: ", log_path, "/model.pth.tar")
             path_model = os.path.join(log_path, 'model.pth.tar')
             load = torch.load(path_model)
             model.load_state_dict(load['state_dict'])
@@ -220,12 +229,15 @@ def main(*args):
             scheduler.load_state_dict(load['scheduler'])
             epoch_start = load['epoch']
 
+        print("--> Epoch Start: ", epoch_start)
 
         if weighted_loss == 'Yes':
+            print("--> Weighted loss")
             criterion_offence_severity = nn.CrossEntropyLoss(weight=dataset_Train.getWeights()[0].cuda())
             criterion_action = nn.CrossEntropyLoss(weight=dataset_Train.getWeights()[1].cuda())
             criterion = [criterion_offence_severity, criterion_action]
         else:
+            print("--> NO Weighted loss")
             criterion_offence_severity = nn.CrossEntropyLoss()
             criterion_action = nn.CrossEntropyLoss()
             criterion = [criterion_offence_severity, criterion_action]
@@ -233,6 +245,7 @@ def main(*args):
 
     # Start training or evaluation
     if only_evaluation == 0:
+        print("--> Starting Evaluation (Test set)...")
         prediction_file = evaluation(
             test_loader2,
             model,
@@ -243,6 +256,7 @@ def main(*args):
         print(results)
 
     elif only_evaluation == 1:
+        print("--> Starting Evaluation (Challenge set)...")
         prediction_file = evaluation(
             chall_loader2,
             model,
@@ -254,6 +268,7 @@ def main(*args):
         print(results)
 
     elif only_evaluation == 2:
+        print("--> Starting Evaluation (Challenge set)...")
         prediction_file = evaluation(
             test_loader2,
             model,
@@ -264,6 +279,7 @@ def main(*args):
         print("TEST")
         print(results)
 
+        print("--> Starting Evaluation (Challenge set)...")
         prediction_file = evaluation(
             chall_loader2,
             model,
@@ -274,14 +290,27 @@ def main(*args):
         print("CHALL")
         print(results)
     else:
+        print("--> Starting Trainer...")
         trainer(train_loader, val_loader2, test_loader2, model, optimizer, scheduler, criterion, 
                 best_model_path, epoch_start, model_name=model_name, path_dataset=path, max_epochs=max_epochs)
         
     return 0
 
+def printHyperparameters(args): 
+    print("Hyperparameters  :")
+    print("Pre-Trained model: ", args.pre_model)
+    print("Pooling type     : ", args.pooling_type)
+    print("Batch size       : ", args.batch_size)
+    print("Learning rate    : ", args.LR)
+    print("Max epochs       : ", args.max_epochs)
+    print("Data augmentation: ", args.data_aug)
 
 
 if __name__ == '__main__':
+
+    print("################################################################################")
+    print(" ---------------------------- DATA KICKERS FC ----------------------------------")
+    print()
 
     parser = ArgumentParser(description='my method', formatter_class=ArgumentDefaultsHelpFormatter)    
     parser.add_argument('--path',   required=True, type=str, help='Path to the dataset folder' )
@@ -313,6 +342,9 @@ if __name__ == '__main__':
     ## Checking if arguments are valid
     checkArguments()
 
+    printHyperparameters(args)
+
+
     # Setup the GPU
     if args.GPU >= 0:
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -324,3 +356,4 @@ if __name__ == '__main__':
     logging.info('Starting main function')
     main(args, False)
     logging.info(f'Total Execution Time is {time.time()-start} seconds')
+    logging.shutdown()

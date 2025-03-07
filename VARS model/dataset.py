@@ -48,7 +48,8 @@ class MultiViewDataset(Dataset):
         self.factor = (end - start) / (((end - start) / 25) * fps)
 
         self.length = len(self.clips)
-        print(self.length)
+
+        print(f"--> Dataset {split}: Total actions: {self.length + len(not_taking)}; Number of actions to use: {self.length}; Number of not taking actions: {len(not_taking)}")
 
     def getDistribution(self):
         return self.distribution_offence_severity, self.distribution_action, 
