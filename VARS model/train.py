@@ -8,6 +8,14 @@ import json
 from SoccerNet.Evaluation.MV_FoulRecognition import evaluate
 from tqdm import tqdm
 
+def print_results(results):
+    print("RESULTS: ")
+    print("  Action class accuracy: {:.3f} %".format(results["accuracy_action"]))
+    print("  Offence severity accuracy:  {:.3f} %".format(results["accuracy_offence_severity"]))
+
+    return
+
+
 def trainer(train_loader,
             val_loader2,
             test_loader2,
@@ -28,12 +36,10 @@ def trainer(train_loader,
 
     for epoch in range(epoch_start, max_epochs):
         
-        print(f"Epoch {epoch+1}/{max_epochs}")
+        print(f"######################  Epoch {epoch+1}/{max_epochs} ###################### ")
     
-        # Create a progress bar
+        print("###################### TRAINING ###################")
         pbar = tqdm(total=len(train_loader), desc="Training", position=0, leave=True)
-
-        ###################### TRAINING ###################
         prediction_file, loss_action, loss_offence_severity = train(
             train_loader,
             model,
@@ -45,12 +51,13 @@ def trainer(train_loader,
             set_name="train",
             pbar=pbar,
         )
+        pbar.close()
 
         results = evaluate(os.path.join(path_dataset, "Train", "annotations.json"), prediction_file)
-        print("TRAINING")
-        print(results)
+        print_results(results)
 
-        ###################### VALIDATION ###################
+        print("###################### VALIDATION ###################")
+        pbar = tqdm(total=len(val_loader2), desc="Validation", position=0, leave=True)
         prediction_file, loss_action, loss_offence_severity = train(
             val_loader2,
             model,
@@ -59,15 +66,17 @@ def trainer(train_loader,
             epoch + 1,
             model_name,
             train = False,
-            set_name="valid"
+            set_name="valid",
+            pbar=pbar
         )
+        pbar.close()
 
         results = evaluate(os.path.join(path_dataset, "Valid", "annotations.json"), prediction_file)
-        print("VALIDATION")
-        print(results)
+        print_results(results)
 
 
-        ###################### TEST ###################
+        print("###################### TEST ###################")
+        pbar = tqdm(total=len(test_loader2), desc="Test", position=0, leave=True)
         prediction_file, loss_action, loss_offence_severity = train(
                 test_loader2,
                 model,
@@ -77,11 +86,12 @@ def trainer(train_loader,
                 model_name,
                 train=False,
                 set_name="test",
+                pbar=pbar
             )
+        pbar.close()
 
         results = evaluate(os.path.join(path_dataset, "Test", "annotations.json"), prediction_file)
-        print("TEST")
-        print(results)
+        print_results(results)
         
 
         scheduler.step()
@@ -95,10 +105,12 @@ def trainer(train_loader,
             'optimizer': optimizer.state_dict(),
             'scheduler': scheduler.state_dict()
             }
+            print("***** SAVING MODEL *****")
             path_aux = os.path.join(best_model_path, str(epoch+1) + "_model.pth.tar")
             torch.save(state, path_aux)
-        
-    pbar.close()    
+
+    print("###################### TRAINER DONE ###################")
+
     return
 
 def train(dataloader,
@@ -145,10 +157,8 @@ def train(dataloader,
 
             # compute output
             if (train):
-                print("------------------ TRAINING ------------------")
                 outputs_offence_severity, outputs_action, _ = model(mvclips)
             else:
-                print("------------------ NOT NOT TRAINING ------------------")
                 with torch.no_grad():
                     outputs_offence_severity, outputs_action, _ = model(mvclips)
             
