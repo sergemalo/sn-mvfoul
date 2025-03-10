@@ -43,10 +43,6 @@ RUN mim install mmcv-full==1.7.2
 COPY requirements-source.txt ./
 RUN pip install -r requirements-source.txt
 
-# Dirty fixes
-# Replace `from mmcv import print_log` by `from mmengine import print_log` in /usr/local/lib/python3.9/dist-packages/mmcv/parallel/distributed.py
-# COPY fixes/distributed.py /usr/local/lib/python3.9/dist-packages/mmcv/parallel/distributed.py
-
 # Copier les fichiers Python
 COPY main.py depther.py ./
 
