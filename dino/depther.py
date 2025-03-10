@@ -44,13 +44,14 @@ class CenterPadding(torch.nn.Module):
         return output
 
 
-class Depther(torch.nn.Module):
+class Depther():
 
     cfg = None
     backbone_size = None
     head_type = None
     head_dataset = None
     backbone_model = None
+    backbone_name = None
     model = None
     depth_transform = None
 
@@ -62,6 +63,7 @@ class Depther(torch.nn.Module):
         self.backbone_size = backbone_size
         self.head_type = head_type
         self.head_dataset = head_dataset
+        self.backbone_name = self._compute_backbone_name()
 
         self.cfg = self._get_head_config()
         self.backbone_model = self._load_backbone()
@@ -180,7 +182,7 @@ class Depther(torch.nn.Module):
         colors = colors[:, :, :3] # Discard alpha component
         return Image.fromarray(colors)
 
-    def _make_depth_transform() -> transforms.Compose:
+    def _make_depth_transform(self) -> transforms.Compose:
         return transforms.Compose([
             transforms.ToTensor(),
             lambda x: 255.0 * x[:3], # Discard alpha component and scale by 255
@@ -190,7 +192,8 @@ class Depther(torch.nn.Module):
             ),
         ])
 
-    def _load_config_from_url(url: str) -> str:
+    def _load_config_from_url(self, url: str) -> str:
+        print(f"Loading config from {url}")
         with urllib.request.urlopen(url) as f:
             return f.read().decode()
     
@@ -202,8 +205,7 @@ class Depther(torch.nn.Module):
 
         return cfg
     
-    def _load_backbone(self):
-
+    def _compute_backbone_name(self):
         archs = {
             "small": "vits14",
             "base": "vitb14",
@@ -212,8 +214,10 @@ class Depther(torch.nn.Module):
         }
         arch = archs[self.backbone_size]
         name = f"dinov2_{arch}"
-
-        model = torch.hub.load(repo_or_dir="facebookresearch/dinov2", model=name)
+        return name
+    
+    def _load_backbone(self):
+        model = torch.hub.load(repo_or_dir="facebookresearch/dinov2", model=self.backbone_name)
         model.eval()
         model.cuda()
 
