@@ -1,7 +1,7 @@
 from PIL import Image
 import urllib.request
 
-from dino.depther import Depther
+from depther import Depther
 
 
 def load_image_from_url(url: str) -> Image:
