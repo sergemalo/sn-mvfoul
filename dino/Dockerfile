@@ -32,6 +32,10 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install -r requirements.txt
 
+# Test CUDA
+COPY cuda.py ./
+RUN python cuda.py
+
 # Installer mmcv
 RUN mim install mmcv-full==1.7.2
 
@@ -44,7 +48,7 @@ RUN pip install -r requirements-source.txt
 # COPY fixes/distributed.py /usr/local/lib/python3.9/dist-packages/mmcv/parallel/distributed.py
 
 # Copier les fichiers Python
-COPY main.py depther.py cuda.py ./
+COPY main.py depther.py ./
 
 # Commande par défaut
 CMD ["python", "main.py"] 
