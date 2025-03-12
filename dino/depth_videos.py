@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 def setup_directories():
     """Create necessary directories if they don't exist."""
-    source_dir = Path("dataset/source")
-    depth_dir = Path("dataset/depth")
+    source_dir = Path("../dataset/source")
+    depth_dir = Path("../dataset/depth")
     
     if not source_dir.exists():
         logger.error(f"Source directory {source_dir} does not exist!")
