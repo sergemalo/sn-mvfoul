@@ -10,14 +10,10 @@ from train import trainer, evaluation
 import torch.nn as nn
 import torchvision.transforms as transforms
 from model import MVNetwork
-from config.classes import EVENT_DICTIONARY, INVERSE_EVENT_DICTIONARY
-from torchvision.models.video import R3D_18_Weights, MC3_18_Weights
-from torchvision.models.video import R2Plus1D_18_Weights, S3D_Weights
-from torchvision.models.video import MViT_V2_S_Weights, MViT_V1_B_Weights
-from torchvision.models.video import mvit_v2_s, MViT_V2_S_Weights, mvit_v1_b, MViT_V1_B_Weights
+from torchvision.models.video import R3D_18_Weights, R2Plus1D_18_Weights, MViT_V2_S_Weights, Swin3D_T_Weights
 
 
-def checkArguments():
+def checkArguments(args):
 
     # args.num_views
     if args.num_views > 5 or  args.num_views < 1:
@@ -61,18 +57,30 @@ def checkArguments():
         print("Possible number for the fps are between 1 and 25")
         exit()
 
+    # args.pre_model
+    if args.pre_model not in ["r3d_18", "r2plus1d_18", "mvit_v2_s", "swin3d_t"]:
+        print("Could not find the desired pretrained model")
+        print("Possible options are: r3d_18, r2plus1d_18, mvit_v2_s, swin3d_t")
+        exit()
+
+    # args.only_evaluation
+    if args.only_evaluation not in [0,1,2,3]:
+        print("Invalid task option (only_evaluation)")
+        print("Possible arguments are: 0, 1, 2, 3")
+        exit()
+
 
 def main(*args):
 
+    # Retrieve the script argument values
     if args:
         args = args[0]
-        LR = args.LR
+        lr = args.LR
         gamma = args.gamma
         step_size = args.step_size
         start_frame = args.start_frame
         end_frame = args.end_frame
         weight_decay = args.weight_decay
-        
         model_name = args.model_name
         pre_model = args.pre_model
         num_views = args.num_views
@@ -92,15 +100,16 @@ def main(*args):
         print("ERROR: No arguments given.")
         exit()
 
+
     # Logging information
     numeric_level = getattr(logging, 'INFO'.upper(), None)
     if not isinstance(numeric_level, int):
         raise ValueError('Invalid log level: %s' % 'INFO')
 
-    os.makedirs(os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(pre_model, os.path.join(str(LR),
+    os.makedirs(os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(pre_model, os.path.join(str(lr),
                             "_B" + str(batch_size) + "_F" + str(number_of_frames) + "_S" + "_G" + str(gamma) + "_Step" + str(step_size)))))), exist_ok=True)
 
-    best_model_path = os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(pre_model, os.path.join(str(LR),
+    best_model_path = os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(pre_model, os.path.join(str(lr),
                             "_B" + str(batch_size) + "_F" + str(number_of_frames) + "_S" + "_G" + str(gamma) + "_Step" + str(step_size))))))
 
 
@@ -115,7 +124,9 @@ def main(*args):
             logging.StreamHandler()
         ])
 
-    # Initialize the data augmentation
+
+    # Initialize the data augmentation, only used for the training data
+    # Apply random transformations to improve generalization
     if data_aug == 'Yes':
         transformAug = transforms.Compose([
                                           transforms.RandomAffine(degrees=(0, 0), translate=(0.1, 0.1), scale=(0.9, 1)),
@@ -128,76 +139,71 @@ def main(*args):
         transformAug = None
 
     if pre_model == "r3d_18":
-        transforms_model = R3D_18_Weights.KINETICS400_V1.transforms()        
-    elif pre_model == "s3d":
-        transforms_model = S3D_Weights.KINETICS400_V1.transforms()       
-    elif pre_model == "mc3_18":
-        transforms_model = MC3_18_Weights.KINETICS400_V1.transforms()       
+        transforms_model = R3D_18_Weights.KINETICS400_V1.transforms()         # .transforms(): returns a set of data preprocessing transformations to prepare input     
     elif pre_model == "r2plus1d_18":
         transforms_model = R2Plus1D_18_Weights.KINETICS400_V1.transforms()
     elif pre_model == "mvit_v2_s":
         transforms_model = MViT_V2_S_Weights.KINETICS400_V1.transforms()
-    else:
-        transforms_model = R2Plus1D_18_Weights.KINETICS400_V1.transforms()
-        print("Warning: Could not find the desired pretrained model")
-        print("Possible options are: r3d_18, s3d, mc3_18, mvit_v2_s and r2plus1d_18")
-        print("We continue with r2plus1d_18")
+    elif pre_model == "swin3d_t":
+        transforms_model = Swin3D_T_Weights.KINETICS400_V1.transforms()
     
+
+    # Create only the relevant Datasets and DataLoaders for this task
     if only_evaluation == 0:
         print("--> ONLY Evaluating on the test set")
         dataset_Test2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Test', num_views = 5, 
-        transform_model=transforms_model)
+                                         transform_model=transforms_model)
         
-        test_loader2 = torch.utils.data.DataLoader(dataset_Test2,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
+        test_loader2 = torch.utils.data.DataLoader(dataset_Test2, 
+                                                   batch_size=1, shuffle=False,
+                                                   num_workers=max_num_worker, pin_memory=True)
         
     elif only_evaluation == 1:
         print("--> ONLY Evaluating on the challenge set")
         dataset_Chall = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Chall', num_views = 5, 
-        transform_model=transforms_model)
+                                         transform_model=transforms_model)
 
-        chall_loader2 = torch.utils.data.DataLoader(dataset_Chall,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
+        chall_loader2 = torch.utils.data.DataLoader(dataset_Chall, 
+                                                    batch_size=1, shuffle=False,
+                                                    num_workers=max_num_worker, pin_memory=True)
         
     elif only_evaluation == 2:
         print("--> ONLY Evaluating on the test and challenge set")
         dataset_Test2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Test', num_views = 5, 
-        transform_model=transforms_model)
+                                         transform_model=transforms_model)
         dataset_Chall = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Chall', num_views = 5, 
-        transform_model=transforms_model)
+                                         transform_model=transforms_model)
 
         test_loader2 = torch.utils.data.DataLoader(dataset_Test2,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
+                                                   batch_size=1, shuffle=False,
+                                                   num_workers=max_num_worker, pin_memory=True)
         
         chall_loader2 = torch.utils.data.DataLoader(dataset_Chall,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
+                                                    batch_size=1, shuffle=False,
+                                                    num_workers=max_num_worker, pin_memory=True)
     else:
         print(f"--> Training and validation for {max_epochs} epcohs, and then evaluation on the test")
 
         # Create Train Validation and Test datasets
         dataset_Train = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Train',
-            num_views = num_views, transform=transformAug, transform_model=transforms_model)
+                                         num_views=num_views, transform=transformAug, transform_model=transforms_model)
         dataset_Valid2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Valid', num_views = 5, 
-            transform_model=transforms_model)
+                                          transform_model=transforms_model)
         dataset_Test2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Test', num_views = 5, 
-            transform_model=transforms_model)
+                                         transform_model=transforms_model)
 
         # Create the dataloaders for train validation and test datasets
-        train_loader = torch.utils.data.DataLoader(dataset_Train,
-            batch_size=batch_size, shuffle=True,
-            num_workers=max_num_worker, pin_memory=True)
+        train_loader = torch.utils.data.DataLoader(dataset_Train, 
+                                                   batch_size=batch_size, shuffle=True,
+                                                   num_workers=max_num_worker, pin_memory=True)
 
         val_loader2 = torch.utils.data.DataLoader(dataset_Valid2,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
+                                                  batch_size=1, shuffle=False,
+                                                  num_workers=max_num_worker, pin_memory=True)
         
         test_loader2 = torch.utils.data.DataLoader(dataset_Test2,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
+                                                   batch_size=1, shuffle=False,
+                                                   num_workers=max_num_worker, pin_memory=True)
 
     print(f"--> Creating the model: {pre_model} with pooling: {pooling_type}")
     model = MVNetwork(net_name=pre_model, agr_type=pooling_type).cuda()
@@ -208,10 +214,12 @@ def main(*args):
         load = torch.load(path_model)
         model.load_state_dict(load['state_dict'])
 
+
+    # Set up training parameters if training
     if only_evaluation == 3:
         print("--> Optimizer: AdamW")
         optimizer = torch.optim.AdamW(model.parameters(),
-                                      lr=LR, 
+                                      lr=lr, 
                                       betas=(0.9, 0.999),
                                       eps=1e-07, 
                                       weight_decay=weight_decay,
@@ -341,8 +349,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     ## Checking if arguments are valid
-    checkArguments()
-
+    checkArguments(args)
     printHyperparameters(args)
 
 
