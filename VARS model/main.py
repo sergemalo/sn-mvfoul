@@ -57,6 +57,7 @@ def checkArguments():
         print("Possible number for the fps are between 1 and 25")
         exit()
 
+    # args.pre_model
     if args.pre_model not in ["r3d_18", "r2plus1d_18", "mvit_v2_s", "swin3d_t"]:
         print("Could not find the desired pretrained model")
         print("Possible options are: r3d_18, r2plus1d_18, mvit_v2_s, swin3d_t")
@@ -65,6 +66,7 @@ def checkArguments():
 
 def main(*args):
 
+    # Retrieve the script argument values
     if args:
         args = args[0]
         LR = args.LR
@@ -92,6 +94,7 @@ def main(*args):
         print("ERROR: No arguments given.")
         exit()
 
+
     # Logging information
     numeric_level = getattr(logging, 'INFO'.upper(), None)
     if not isinstance(numeric_level, int):
@@ -115,6 +118,7 @@ def main(*args):
             logging.StreamHandler()
         ])
 
+
     # Initialize the data augmentation
     if data_aug == 'Yes':
         transformAug = transforms.Compose([
@@ -135,67 +139,64 @@ def main(*args):
         transforms_model = MViT_V2_S_Weights.KINETICS400_V1.transforms()
     elif pre_model == "swin3d_t":
         transforms_model = Swin3D_T_Weights.KINETICS400_V1.transforms()
-    else:
-        transforms_model = R2Plus1D_18_Weights.KINETICS400_V1.transforms()
-        print("Warning: Could not find the desired pretrained model")
-        print("Possible options are: r3d_18, s3d, mc3_18, mvit_v2_s and r2plus1d_18")
-        print("We continue with r2plus1d_18")
     
+
+    # Create only the relevant Datasets and DataLoaders for this task
     if only_evaluation == 0:
         print("--> ONLY Evaluating on the test set")
         dataset_Test2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Test', num_views = 5, 
-        transform_model=transforms_model)
+                                         transform_model=transforms_model)
         
-        test_loader2 = torch.utils.data.DataLoader(dataset_Test2,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
+        test_loader2 = torch.utils.data.DataLoader(dataset_Test2, 
+                                                   batch_size=1, shuffle=False,
+                                                   num_workers=max_num_worker, pin_memory=True)
         
     elif only_evaluation == 1:
         print("--> ONLY Evaluating on the challenge set")
         dataset_Chall = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Chall', num_views = 5, 
-        transform_model=transforms_model)
+                                         transform_model=transforms_model)
 
-        chall_loader2 = torch.utils.data.DataLoader(dataset_Chall,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
+        chall_loader2 = torch.utils.data.DataLoader(dataset_Chall, 
+                                                    batch_size=1, shuffle=False,
+                                                    num_workers=max_num_worker, pin_memory=True)
         
     elif only_evaluation == 2:
         print("--> ONLY Evaluating on the test and challenge set")
         dataset_Test2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Test', num_views = 5, 
-        transform_model=transforms_model)
+                                         transform_model=transforms_model)
         dataset_Chall = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Chall', num_views = 5, 
-        transform_model=transforms_model)
+                                         transform_model=transforms_model)
 
         test_loader2 = torch.utils.data.DataLoader(dataset_Test2,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
+                                                   batch_size=1, shuffle=False,
+                                                   num_workers=max_num_worker, pin_memory=True)
         
         chall_loader2 = torch.utils.data.DataLoader(dataset_Chall,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
+                                                    batch_size=1, shuffle=False,
+                                                    num_workers=max_num_worker, pin_memory=True)
     else:
         print(f"--> Training and validation for {max_epochs} epcohs, and then evaluation on the test")
 
         # Create Train Validation and Test datasets
         dataset_Train = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Train',
-            num_views = num_views, transform=transformAug, transform_model=transforms_model)
+                                         num_views=num_views, transform=transformAug, transform_model=transforms_model)
         dataset_Valid2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Valid', num_views = 5, 
-            transform_model=transforms_model)
+                                          transform_model=transforms_model)
         dataset_Test2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Test', num_views = 5, 
-            transform_model=transforms_model)
+                                         transform_model=transforms_model)
 
         # Create the dataloaders for train validation and test datasets
-        train_loader = torch.utils.data.DataLoader(dataset_Train,
-            batch_size=batch_size, shuffle=True,
-            num_workers=max_num_worker, pin_memory=True)
+        train_loader = torch.utils.data.DataLoader(dataset_Train, 
+                                                   batch_size=batch_size, shuffle=True,
+                                                   num_workers=max_num_worker, pin_memory=True)
 
         val_loader2 = torch.utils.data.DataLoader(dataset_Valid2,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
+                                                  batch_size=1, shuffle=False,
+                                                  num_workers=max_num_worker, pin_memory=True)
         
         test_loader2 = torch.utils.data.DataLoader(dataset_Test2,
-            batch_size=1, shuffle=False,
-            num_workers=max_num_worker, pin_memory=True)
+                                                   batch_size=1, shuffle=False,
+                                                   num_workers=max_num_worker, pin_memory=True)
 
     print(f"--> Creating the model: {pre_model} with pooling: {pooling_type}")
     model = MVNetwork(net_name=pre_model, agr_type=pooling_type).cuda()
@@ -206,6 +207,8 @@ def main(*args):
         load = torch.load(path_model)
         model.load_state_dict(load['state_dict'])
 
+
+    # Set up training parameters if training
     if only_evaluation == 3:
         print("--> Optimizer: AdamW")
         optimizer = torch.optim.AdamW(model.parameters(),
