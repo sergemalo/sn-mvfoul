@@ -2,9 +2,10 @@
 import __future__
 import torch
 from mvaggregate import MVAggregate
-from torchvision.models.video import r3d_18, R3D_18_Weights, MC3_18_Weights, mc3_18
-from torchvision.models.video import r2plus1d_18, R2Plus1D_18_Weights, s3d, S3D_Weights
-from torchvision.models.video import mvit_v2_s, MViT_V2_S_Weights, mvit_v1_b, MViT_V1_B_Weights
+from torchvision.models.video import r3d_18, R3D_18_Weights
+from torchvision.models.video import r2plus1d_18, R2Plus1D_18_Weights
+from torchvision.models.video import mvit_v2_s, MViT_V2_S_Weights
+from torchvision.models.video import swin3d_t, Swin3D_T_Weights
 
 
 
@@ -19,26 +20,20 @@ class MVNetwork(torch.nn.Module):
         
         self.feat_dim = 512
 
-        if net_name == "r3d_18":
-            weights_model = R3D_18_Weights.DEFAULT
+        if net_name == "r3d_18":                            # ResNet
+            weights_model = R3D_18_Weights.DEFAULT          # KINETICS400_V1
             network = r3d_18(weights=weights_model)
-        elif net_name == "s3d":
-            weights_model = S3D_Weights.DEFAULT
-            network = s3d(weights=weights_model)
-            self.feat_dim = 400
-        elif net_name == "mc3_18":
-            weights_model = MC3_18_Weights.DEFAULT
-            network = mc3_18(weights=weights_model)
-        elif net_name == "r2plus1d_18":
-            weights_model = R2Plus1D_18_Weights.DEFAULT
+        elif net_name == "r2plus1d_18":                     # R(2+1)D
+            weights_model = R2Plus1D_18_Weights.DEFAULT     # KINETICS400_V1
             network = r2plus1d_18(weights=weights_model)
-        elif net_name == "mvit_v2_s":
-            weights_model = MViT_V2_S_Weights.DEFAULT
+        elif net_name == "mvit_v2_s":                       # MViTv2 (small)
+            weights_model = MViT_V2_S_Weights.DEFAULT       # KINETICS400_V1
             network = mvit_v2_s(weights=weights_model)
             self.feat_dim = 400
-        else:
-            weights_model = R2Plus1D_18_Weights.DEFAULT
-            network = r2plus1d_18(weights=weights_model)
+        elif net_name == "swin3d_t":                        # Swin3d Transformer (tiny)
+            weights_model = Swin3D_T_Weights.DEFAULT        # KINETICS400_V1
+            network = swin3d_t(weights=weights_model)
+        
                 
         network.fc = torch.nn.Sequential()
 

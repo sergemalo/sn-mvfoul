@@ -11,10 +11,7 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 from model import MVNetwork
 from config.classes import EVENT_DICTIONARY, INVERSE_EVENT_DICTIONARY
-from torchvision.models.video import R3D_18_Weights, MC3_18_Weights
-from torchvision.models.video import R2Plus1D_18_Weights, S3D_Weights
-from torchvision.models.video import MViT_V2_S_Weights, MViT_V1_B_Weights
-from torchvision.models.video import mvit_v2_s, MViT_V2_S_Weights, mvit_v1_b, MViT_V1_B_Weights
+from torchvision.models.video import R3D_18_Weights, R2Plus1D_18_Weights, MViT_V2_S_Weights, Swin3D_T_Weights
 
 
 def checkArguments():
@@ -61,6 +58,11 @@ def checkArguments():
         print("Possible number for the fps are between 1 and 25")
         exit()
 
+    if args.pre_model not in ["r3d_18", "r2plus1d_18", "mvit_v2_s", "swin3d_t"]:
+        print("Could not find the desired pretrained model")
+        print("Possible options are: r3d_18, r2plus1d_18, mvit_v2_s, swin3d_t")
+        exit()
+
 
 def main(*args):
 
@@ -72,7 +74,6 @@ def main(*args):
         start_frame = args.start_frame
         end_frame = args.end_frame
         weight_decay = args.weight_decay
-        
         model_name = args.model_name
         pre_model = args.pre_model
         num_views = args.num_views
@@ -128,15 +129,13 @@ def main(*args):
         transformAug = None
 
     if pre_model == "r3d_18":
-        transforms_model = R3D_18_Weights.KINETICS400_V1.transforms()        
-    elif pre_model == "s3d":
-        transforms_model = S3D_Weights.KINETICS400_V1.transforms()       
-    elif pre_model == "mc3_18":
-        transforms_model = MC3_18_Weights.KINETICS400_V1.transforms()       
+        transforms_model = R3D_18_Weights.KINETICS400_V1.transforms()              
     elif pre_model == "r2plus1d_18":
         transforms_model = R2Plus1D_18_Weights.KINETICS400_V1.transforms()
     elif pre_model == "mvit_v2_s":
         transforms_model = MViT_V2_S_Weights.KINETICS400_V1.transforms()
+    elif pre_model == "swin3d_t":
+        transforms_model = Swin3D_T_Weights.KINETICS400_V1.transforms()
     else:
         transforms_model = R2Plus1D_18_Weights.KINETICS400_V1.transforms()
         print("Warning: Could not find the desired pretrained model")
