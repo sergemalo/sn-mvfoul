@@ -11,13 +11,7 @@ class WeightedAggregate(nn.Module):
 
         r1 = -1
         r2 = 1
-        self.attention_weights = nn.Parameter((r1 - r2) * torch.rand(feat_dim, feat_dim) + r2) # learnable transformation matrix, Dimension (E, E)
-
-        self.normReLu = nn.Sequential(
-            nn.LayerNorm(feat_dim),
-            nn.ReLU()
-        )        
-
+        self.attention_weights = nn.Parameter((r1 - r2) * torch.rand(feat_dim, feat_dim) + r2) # learnable transformation matrix, Dimension (E, E)      
         self.relu = nn.ReLU()
    
 
