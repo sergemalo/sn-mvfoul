@@ -7,7 +7,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DEPTHER_BACKBONE_SIZE=base
+      - DEPTHER_BACKBONE_SIZE=large
       - DEPTHER_HEAD_TYPE=dpt
       - DEPTHER_HEAD_DATASET=nyu
     deploy:
