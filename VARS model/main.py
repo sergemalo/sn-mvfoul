@@ -10,7 +10,6 @@ from train import trainer, evaluation
 import torch.nn as nn
 import torchvision.transforms as transforms
 from model import MVNetwork
-from config.classes import EVENT_DICTIONARY, INVERSE_EVENT_DICTIONARY
 from torchvision.models.video import R3D_18_Weights, R2Plus1D_18_Weights, MViT_V2_S_Weights, Swin3D_T_Weights
 
 
