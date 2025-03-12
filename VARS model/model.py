@@ -11,12 +11,11 @@ from torchvision.models.video import swin3d_t, Swin3D_T_Weights
 
 class MVNetwork(torch.nn.Module):
 
-    def __init__(self, net_name='r2plus1d_18', agr_type='max', lifting_net=torch.nn.Sequential()):
+    def __init__(self, net_name='r2plus1d_18', agr_type='max'):
         super().__init__()
 
         self.net_name = net_name
         self.agr_type = agr_type
-        self.lifting_net = lifting_net
         
         self.feat_dim = 512
 
@@ -41,7 +40,6 @@ class MVNetwork(torch.nn.Module):
             model=network,
             agr_type=self.agr_type, 
             feat_dim=self.feat_dim, 
-            lifting_net=self.lifting_net,
         )
 
     def forward(self, mvimages):
