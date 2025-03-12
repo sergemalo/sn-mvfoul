@@ -6,13 +6,36 @@ from config.classes import INVERSE_EVENT_DICTIONARY
 import json
 from SoccerNet.Evaluation.MV_FoulRecognition import evaluate
 from tqdm import tqdm
+import wandb
 
-def print_results(results):
+def print_results(results, dataset, wandb_run, epoch):
     print("RESULTS: ")
     print("  Action class accuracy: {:.3f} %".format(results["accuracy_action"]))
     print("  Offence severity accuracy:  {:.3f} %".format(results["accuracy_offence_severity"]))
 
+    wandb_run.log({"Epoch": epoch, 
+                   f"{dataset}_acc_action": round(results["accuracy_action"], 3), 
+                   f"{dataset}_acc_offense_severity": round(results["accuracy_offence_severity"], 3)}
+                   )
+
     return
+
+
+def set_wandb_metrics(wandb_run):
+
+    wandb_run.define_metric(name="Epoch", hidden=True) # Don't plot the Epoch metric
+
+    wandb_run.define_metric(name="Train_acc_action", summary="max", step_metric="Epoch")
+    
+    wandb_run.define_metric(name="Valid_acc_action", summary="max", step_metric="Epoch")
+
+    wandb_run.define_metric(name="Test_acc_action", summary="max", step_metric="Epoch")
+
+    wandb_run.define_metric(name="Train_acc_offense_severity", summary="max", step_metric="Epoch")
+    
+    wandb_run.define_metric(name="Valid_acc_offense_severity", summary="max", step_metric="Epoch")
+    
+    wandb_run.define_metric(name="Test_acc_offense_severity", summary="max", step_metric="Epoch")
 
 
 def trainer(train_loader,
@@ -26,16 +49,18 @@ def trainer(train_loader,
             epoch_start,
             model_name,
             path_dataset,
+            wandb_run,
             max_epochs=1000
             ):
     
 
     logging.info("start training")
     counter = 0
+    set_wandb_metrics(wandb_run)
 
-    for epoch in range(epoch_start, max_epochs):
+    for epoch in range(epoch_start, max_epochs+1): # [epoch_start, max_epoch]
         
-        print(f"######################  Epoch {epoch+1}/{max_epochs} ###################### ")
+        print(f"######################  Epoch {epoch}/{max_epochs} ###################### ")
     
         print("###################### TRAINING ###################")
         pbar = tqdm(total=len(train_loader), desc="Training", position=0, leave=True)
@@ -53,7 +78,7 @@ def trainer(train_loader,
         pbar.close()
 
         results = evaluate(os.path.join(path_dataset, "Train", "annotations.json"), prediction_file)
-        print_results(results)
+        print_results(results, "Train", wandb_run, epoch)
 
         print("###################### VALIDATION ###################")
         pbar = tqdm(total=len(val_loader2), desc="Validation", position=0, leave=True)
@@ -71,7 +96,7 @@ def trainer(train_loader,
         pbar.close()
 
         results = evaluate(os.path.join(path_dataset, "Valid", "annotations.json"), prediction_file)
-        print_results(results)
+        print_results(results, "Valid", wandb_run, epoch)
 
 
         print("###################### TEST ###################")
@@ -90,7 +115,7 @@ def trainer(train_loader,
         pbar.close()
 
         results = evaluate(os.path.join(path_dataset, "Test", "annotations.json"), prediction_file)
-        print_results(results)
+        print_results(results, "Test", wandb_run, epoch)
         
 
         scheduler.step()

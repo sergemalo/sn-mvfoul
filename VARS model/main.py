@@ -11,6 +11,7 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 from model import MVNetwork
 from torchvision.models.video import R3D_18_Weights, R2Plus1D_18_Weights, MViT_V2_S_Weights, Swin3D_T_Weights
+import wandb
 
 
 def checkArguments(args):
@@ -70,11 +71,10 @@ def checkArguments(args):
         exit()
 
 
-def main(*args):
+def main(args, wandb_run):
 
     # Retrieve the script argument values
     if args:
-        args = args[0]
         lr = args.LR
         gamma = args.gamma
         step_size = args.step_size
@@ -226,7 +226,7 @@ def main(*args):
                                       amsgrad=False)
         
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
-        epoch_start = 0
+        epoch_start = 1
 
         if continue_training:
             print("--> Conitnuing training from: ", log_path, "/model.pth.tar")
@@ -300,7 +300,8 @@ def main(*args):
     else:
         print("--> Starting Trainer...")
         trainer(train_loader, val_loader2, test_loader2, model, optimizer, scheduler, criterion, 
-                best_model_path, epoch_start, model_name=model_name, path_dataset=path, max_epochs=max_epochs)
+                best_model_path, epoch_start, model_name=model_name, path_dataset=path, wandb_run=wandb_run,
+                max_epochs=max_epochs)
         
     print("--> MAIN DONE! ")
     return 0
@@ -350,6 +351,18 @@ if __name__ == '__main__':
 
     ## Checking if arguments are valid
     checkArguments(args)
+
+    wandb_run = wandb.init(project="IFT6759_MVFoulR", 
+                           name="testing_training_pipeline",
+                           config= {"Pre-Trained model": args.pre_model,
+                                    "Pooling type": args.pooling_type,
+                                    "Batch size": args.batch_size,
+                                    "Learning rate": args.LR,
+                                    "Max epochs": args.max_epochs,
+                                    "Data augmentation": args.data_aug,
+                                    "Number of views": args.num_views,
+                                    "FPS": args.fps}
+                            )
     printHyperparameters(args)
 
 
@@ -362,6 +375,7 @@ if __name__ == '__main__':
     # Start the main training function
     start=time.time()
     logging.info('Starting main function')
-    main(args, False)
+    main(args, wandb_run)
     logging.info(f'Total Execution Time is {time.time()-start} seconds')
     logging.shutdown()
+    wandb_run.finish()
