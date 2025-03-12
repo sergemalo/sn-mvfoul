@@ -1,5 +1,4 @@
 import os
-import logging
 import time
 import numpy as np
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
@@ -101,28 +100,11 @@ def main(args, wandb_run):
         exit()
 
 
-    # Logging information
-    numeric_level = getattr(logging, 'INFO'.upper(), None)
-    if not isinstance(numeric_level, int):
-        raise ValueError('Invalid log level: %s' % 'INFO')
-
-    os.makedirs(os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(pre_model, os.path.join(str(lr),
-                            "_B" + str(batch_size) + "_F" + str(number_of_frames) + "_S" + "_G" + str(gamma) + "_Step" + str(step_size)))))), exist_ok=True)
-
-    best_model_path = os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(pre_model, os.path.join(str(lr),
+    model_saving_dir = os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(pre_model, os.path.join(str(lr),
                             "_B" + str(batch_size) + "_F" + str(number_of_frames) + "_S" + "_G" + str(gamma) + "_Step" + str(step_size))))))
 
+    os.makedirs(model_saving_dir, exist_ok=True)
 
-    log_path = os.path.join(best_model_path, "logging.log")
-
-    logging.basicConfig(
-        level=numeric_level,
-        format=
-        "%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s",
-        handlers=[
-            logging.FileHandler(log_path),
-            logging.StreamHandler()
-        ])
 
 
     # Initialize the data augmentation, only used for the training data
@@ -229,8 +211,8 @@ def main(args, wandb_run):
         epoch_start = 1
 
         if continue_training:
-            print("--> Conitnuing training from: ", log_path, "/model.pth.tar")
-            path_model = os.path.join(log_path, 'model.pth.tar')
+            print("--> Conitnuing training from: ", model_saving_dir, "/model.pth.tar")
+            path_model = os.path.join(model_saving_dir, 'model.pth.tar')
             load = torch.load(path_model)
             model.load_state_dict(load['state_dict'])
             optimizer.load_state_dict(load['optimizer'])
@@ -300,20 +282,11 @@ def main(args, wandb_run):
     else:
         print("--> Starting Trainer...")
         trainer(train_loader, val_loader2, test_loader2, model, optimizer, scheduler, criterion, 
-                best_model_path, epoch_start, model_name=model_name, path_dataset=path, wandb_run=wandb_run,
+                model_saving_dir, epoch_start, model_name=model_name, path_dataset=path, wandb_run=wandb_run,
                 max_epochs=max_epochs)
         
     print("--> MAIN DONE! ")
     return 0
-
-def printHyperparameters(args): 
-    print("Hyperparameters  :")
-    print("Pre-Trained model: ", args.pre_model)
-    print("Pooling type     : ", args.pooling_type)
-    print("Batch size       : ", args.batch_size)
-    print("Learning rate    : ", args.LR)
-    print("Max epochs       : ", args.max_epochs)
-    print("Data augmentation: ", args.data_aug)
 
 
 if __name__ == '__main__':
@@ -347,13 +320,15 @@ if __name__ == '__main__':
     parser.add_argument("--only_evaluation", required=False, type=int, default=3, help="Only evaluation, 0 = on test set, 1 = on chall set, 2 = on both sets and 3 = train/valid/test")
     parser.add_argument("--path_to_model_weights", required=False, type=str, default="", help="Path to the model weights")
 
+    parser.add_argument("--wandb_run_name", required=True, type=str, help="Wandb run name")
+
     args = parser.parse_args()
 
     ## Checking if arguments are valid
     checkArguments(args)
 
     wandb_run = wandb.init(project="IFT6759_MVFoulR", 
-                           name="testing_training_pipeline",
+                           name=args.wandb_run_name,
                            config= {"Pre-Trained model": args.pre_model,
                                     "Pooling type": args.pooling_type,
                                     "Batch size": args.batch_size,
@@ -363,7 +338,6 @@ if __name__ == '__main__':
                                     "Number of views": args.num_views,
                                     "FPS": args.fps}
                             )
-    printHyperparameters(args)
 
 
     # Setup the GPU
@@ -374,8 +348,7 @@ if __name__ == '__main__':
 
     # Start the main training function
     start=time.time()
-    logging.info('Starting main function')
+    print('Starting main function')
     main(args, wandb_run)
-    logging.info(f'Total Execution Time is {time.time()-start} seconds')
-    logging.shutdown()
+    print(f'Total Execution Time: {time.strftime("%H:%M:%S", time.gmtime(time.time()-start))}')
     wandb_run.finish()
