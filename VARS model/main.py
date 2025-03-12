@@ -63,13 +63,19 @@ def checkArguments(args):
         print("Possible options are: r3d_18, r2plus1d_18, mvit_v2_s, swin3d_t")
         exit()
 
+    # args.only_evaluation
+    if args.only_evaluation not in [0,1,2,3]:
+        print("Invalid task option (only_evaluation)")
+        print("Possible arguments are: 0, 1, 2, 3")
+        exit()
+
 
 def main(*args):
 
     # Retrieve the script argument values
     if args:
         args = args[0]
-        LR = args.LR
+        lr = args.LR
         gamma = args.gamma
         step_size = args.step_size
         start_frame = args.start_frame
@@ -100,10 +106,10 @@ def main(*args):
     if not isinstance(numeric_level, int):
         raise ValueError('Invalid log level: %s' % 'INFO')
 
-    os.makedirs(os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(pre_model, os.path.join(str(LR),
+    os.makedirs(os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(pre_model, os.path.join(str(lr),
                             "_B" + str(batch_size) + "_F" + str(number_of_frames) + "_S" + "_G" + str(gamma) + "_Step" + str(step_size)))))), exist_ok=True)
 
-    best_model_path = os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(pre_model, os.path.join(str(LR),
+    best_model_path = os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(pre_model, os.path.join(str(lr),
                             "_B" + str(batch_size) + "_F" + str(number_of_frames) + "_S" + "_G" + str(gamma) + "_Step" + str(step_size))))))
 
 
@@ -213,7 +219,7 @@ def main(*args):
     if only_evaluation == 3:
         print("--> Optimizer: AdamW")
         optimizer = torch.optim.AdamW(model.parameters(),
-                                      lr=LR, 
+                                      lr=lr, 
                                       betas=(0.9, 0.999),
                                       eps=1e-07, 
                                       weight_decay=weight_decay,
