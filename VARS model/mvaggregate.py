@@ -8,12 +8,11 @@ class WeightedAggregate(nn.Module):
         super().__init__()
         self.model = model
         self.lifting_net = lifting_net
-        num_heads = 8
         self.feature_dim = feat_dim
 
         r1 = -1
         r2 = 1
-        self.attention_weights = nn.Parameter((r1 - r2) * torch.rand(feat_dim, feat_dim) + r2)
+        self.attention_weights = nn.Parameter((r1 - r2) * torch.rand(feat_dim, feat_dim) + r2) # learnable transformation matrix, Dimension (E, E)
 
         self.normReLu = nn.Sequential(
             nn.LayerNorm(feat_dim),
@@ -26,37 +25,37 @@ class WeightedAggregate(nn.Module):
 
     def forward(self, mvimages):
         B, V, C, D, H, W = mvimages.shape # Batch, Views, Channel, Depth, Height, Width
-        aux = self.lifting_net(unbatch_tensor(self.model(batch_tensor(mvimages, dim=1, squeeze=True)), B, dim=1, unsqueeze=True))
+        # E = embedding dimension
+
+        aux = self.lifting_net(unbatch_tensor(self.model(batch_tensor(mvimages, dim=1, squeeze=True)), B, dim=1, unsqueeze=True)) # shape: (B, V, E)
 
 
         ##################### VIEW ATTENTION #####################
 
-        # S = source length 
-        # N = batch size
-        # E = embedding dimension
-        # L = target length
+        # Transform output embeddings
+        aux = torch.matmul(aux, self.attention_weights) # Dimension (B, V, E)
 
-        aux = torch.matmul(aux, self.attention_weights)
-        # Dimension S, E for two views (2,512)
-
-        # Dimension N, S, E
-        aux_t = aux.permute(0, 2, 1)
-
-        prod = torch.bmm(aux, aux_t)
-        relu_res = self.relu(prod)
+        # Compute dot product (similarity, "attention weights") between every transformed embedding
+        aux_t = aux.permute(0, 2, 1) # Dimension (B, E, V)
+        prod = torch.bmm(aux, aux_t) # Batch matrix-matrix product, Dimension (B, V, V)
+        relu_res = self.relu(prod)   # Ensures non-negative "attention weights", Dimension (B, V, V)
         
-        aux_sum = torch.sum(torch.reshape(relu_res, (B, V*V)).T, dim=0).unsqueeze(0)
-        final_attention_weights = torch.div(torch.reshape(relu_res, (B, V*V)).T, aux_sum.squeeze(0))
+        # Divide "attention weights" by sum across batch
+        aux_sum = torch.sum(torch.reshape(relu_res, (B, V*V)).T, dim=0).unsqueeze(0) # Compute attention weights sum across batch                           
+        final_attention_weights = torch.div(torch.reshape(relu_res, (B, V*V)).T, aux_sum.squeeze(0)) # Divide each element by batch sum
         final_attention_weights = final_attention_weights.T
+        final_attention_weights = torch.reshape(final_attention_weights, (B, V, V)) # Dimension (B, V, V)
 
-        final_attention_weights = torch.reshape(final_attention_weights, (B, V, V))
+        # Sum up all attention weights for a view
+        final_attention_weights = torch.sum(final_attention_weights, dim=1) # Dimension (B, V)
 
-        final_attention_weights = torch.sum(final_attention_weights, 1)
+        # Scale the embeddings by the attention weights
+        output = torch.mul(aux.squeeze(), final_attention_weights.unsqueeze(-1))    # aux.squeeze() (B, V, E), 
+                                                                                    # final_attention_weights.unsqueeze(-1) (B, V, 1)
+                                                                                    # element-wise multiplication
 
-        output = torch.mul(aux.squeeze(), final_attention_weights.unsqueeze(-1))
-
-        output = torch.sum(output, 1)
-
+        # Aggregate over the views by summing the embeddings
+        output = torch.sum(output, 1) # Dimension (B, E)
         return output.squeeze(), final_attention_weights
 
 
