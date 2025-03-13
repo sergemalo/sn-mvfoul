@@ -102,7 +102,7 @@ def trainer(train_loader,
         scheduler.step()
 
         # Save the model every 4 epochs
-        if (epoch % 1 == 0):
+        if (epoch % 4 == 0):
             state = {
             'epoch': epoch,
             'state_dict': model.state_dict(),
