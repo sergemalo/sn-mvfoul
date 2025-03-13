@@ -52,6 +52,7 @@ def trainer(train_loader,
             model_name,
             path_dataset,
             wandb_run,
+            model_artifact,
             max_epochs=1000
             ):
     
@@ -101,7 +102,7 @@ def trainer(train_loader,
         scheduler.step()
 
         # Save the model every 4 epochs
-        if (epoch % 4 == 0):
+        if (epoch % 1 == 0):
             state = {
             'epoch': epoch,
             'state_dict': model.state_dict(),
@@ -110,7 +111,9 @@ def trainer(train_loader,
             }
             print("***** SAVING MODEL *****")
             path_aux = os.path.join(model_saving_dir, str(epoch) + "_model.pth.tar")
-            torch.save(state, path_aux)
+            torch.save(state, path_aux) # This saves the state_dict info locally
+            if (model_artifact != None):
+                model_artifact.add_file(path_aux)
 
 
     # Evaluate on the Test set after training
@@ -143,8 +146,12 @@ def trainer(train_loader,
         }
         print("***** SAVING MODEL *****")
         path_aux = os.path.join(model_saving_dir, str(max_epochs) + "_model.pth.tar")
-        torch.save(state, path_aux)
+        torch.save(state, path_aux) # This saves the state_dict info locally
+        if (model_artifact != None):
+            model_artifact.add_file(path_aux)
 
+    if (model_artifact != None):
+        wandb_run.log_artifact(model_artifact)
     print("###################### TRAINER DONE ###################")
 
     return

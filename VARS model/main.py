@@ -70,7 +70,7 @@ def checkArguments(args):
         exit()
 
 
-def main(args, wandb_run):
+def main(args, wandb_run, model_artifact):
 
     # Retrieve the script argument values
     if args:
@@ -100,9 +100,7 @@ def main(args, wandb_run):
         exit()
 
 
-    model_saving_dir = os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(pre_model, os.path.join(str(lr),
-                            "_B" + str(batch_size) + "_F" + str(number_of_frames) + "_S" + "_G" + str(gamma) + "_Step" + str(step_size))))))
-
+    model_saving_dir = os.path.join("models", os.path.join(model_name))
     os.makedirs(model_saving_dir, exist_ok=True)
 
 
@@ -283,7 +281,7 @@ def main(args, wandb_run):
         print("--> Starting Trainer...")
         trainer(train_loader, val_loader2, test_loader2, model, optimizer, scheduler, criterion, 
                 model_saving_dir, epoch_start, model_name=model_name, path_dataset=path, wandb_run=wandb_run,
-                max_epochs=max_epochs)
+                model_artifact=model_artifact, max_epochs=max_epochs)
         
     print("--> MAIN DONE! ")
     return 0
@@ -321,12 +319,14 @@ if __name__ == '__main__':
     parser.add_argument("--path_to_model_weights", required=False, type=str, default="", help="Path to the model weights")
 
     parser.add_argument("--wandb_run_name", required=True, type=str, help="Wandb run name")
+    parser.add_argument("--wandb_saving_model_name", required=False, type=str, default="", help="Name of the Artifact to save the checkpoints in")
 
     args = parser.parse_args()
 
     ## Checking if arguments are valid
     checkArguments(args)
 
+    # Initialize Wandb
     wandb_run = wandb.init(project="IFT6759_MVFoulR", 
                            name=args.wandb_run_name,
                            config= {"Pre-Trained model": args.pre_model,
@@ -338,6 +338,12 @@ if __name__ == '__main__':
                                     "Number of views": args.num_views,
                                     "FPS": args.fps}
                             )
+    
+    if (args.wandb_saving_model_name != ""):
+        model_artifact = wandb.Artifact(name=args.wandb_saving_model_name,
+                                        type="model")
+    else:
+        model_artifact = None
 
 
     # Setup the GPU
@@ -349,6 +355,6 @@ if __name__ == '__main__':
     # Start the main training function
     start=time.time()
     print('Starting main function')
-    main(args, wandb_run)
+    main(args, wandb_run, model_artifact)
     print(f'Total Execution Time: {time.strftime("%H:%M:%S", time.gmtime(time.time()-start))}')
     wandb_run.finish()
