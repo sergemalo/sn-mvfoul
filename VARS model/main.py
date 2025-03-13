@@ -1,5 +1,4 @@
 import os
-import logging
 import time
 import numpy as np
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
@@ -11,6 +10,8 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 from model import MVNetwork
 from torchvision.models.video import R3D_18_Weights, R2Plus1D_18_Weights, MViT_V2_S_Weights, Swin3D_T_Weights
+from torchvision.models.video import MC3_18_Weights, S3D_Weights
+import wandb
 
 
 def checkArguments(args):
@@ -58,9 +59,9 @@ def checkArguments(args):
         exit()
 
     # args.pre_model
-    if args.pre_model not in ["r3d_18", "r2plus1d_18", "mvit_v2_s", "swin3d_t"]:
+    if args.pre_model not in ["r3d_18", "r2plus1d_18", "mvit_v2_s", "swin3d_t", "mc3_18", "s3d"]:
         print("Could not find the desired pretrained model")
-        print("Possible options are: r3d_18, r2plus1d_18, mvit_v2_s, swin3d_t")
+        print("Possible options are: r3d_18, r2plus1d_18, mvit_v2_s, swin3d_t, mc3_18, s3d")
         exit()
 
     # args.only_evaluation
@@ -70,11 +71,10 @@ def checkArguments(args):
         exit()
 
 
-def main(*args):
+def main(args, wandb_run, model_artifact):
 
     # Retrieve the script argument values
     if args:
-        args = args[0]
         lr = args.LR
         gamma = args.gamma
         step_size = args.step_size
@@ -101,28 +101,9 @@ def main(*args):
         exit()
 
 
-    # Logging information
-    numeric_level = getattr(logging, 'INFO'.upper(), None)
-    if not isinstance(numeric_level, int):
-        raise ValueError('Invalid log level: %s' % 'INFO')
+    model_saving_dir = os.path.join("models", os.path.join(model_name))
+    os.makedirs(model_saving_dir, exist_ok=True)
 
-    os.makedirs(os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(pre_model, os.path.join(str(lr),
-                            "_B" + str(batch_size) + "_F" + str(number_of_frames) + "_S" + "_G" + str(gamma) + "_Step" + str(step_size)))))), exist_ok=True)
-
-    best_model_path = os.path.join("models", os.path.join(model_name, os.path.join(str(num_views), os.path.join(pre_model, os.path.join(str(lr),
-                            "_B" + str(batch_size) + "_F" + str(number_of_frames) + "_S" + "_G" + str(gamma) + "_Step" + str(step_size))))))
-
-
-    log_path = os.path.join(best_model_path, "logging.log")
-
-    logging.basicConfig(
-        level=numeric_level,
-        format=
-        "%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s",
-        handlers=[
-            logging.FileHandler(log_path),
-            logging.StreamHandler()
-        ])
 
 
     # Initialize the data augmentation, only used for the training data
@@ -146,6 +127,10 @@ def main(*args):
         transforms_model = MViT_V2_S_Weights.KINETICS400_V1.transforms()
     elif pre_model == "swin3d_t":
         transforms_model = Swin3D_T_Weights.KINETICS400_V1.transforms()
+    elif pre_model == "mc3_18":
+        transforms_model = MC3_18_Weights.KINETICS400_V1.transforms()
+    elif pre_model == "s3d":
+         transforms_model = S3D_Weights.KINETICS400_V1.transforms()
     
 
     # Create only the relevant Datasets and DataLoaders for this task
@@ -226,11 +211,11 @@ def main(*args):
                                       amsgrad=False)
         
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
-        epoch_start = 0
+        epoch_start = 1
 
         if continue_training:
-            print("--> Conitnuing training from: ", log_path, "/model.pth.tar")
-            path_model = os.path.join(log_path, 'model.pth.tar')
+            print("--> Conitnuing training from: ", model_saving_dir, "/model.pth.tar")
+            path_model = os.path.join(model_saving_dir, 'model.pth.tar')
             load = torch.load(path_model)
             model.load_state_dict(load['state_dict'])
             optimizer.load_state_dict(load['optimizer'])
@@ -300,19 +285,11 @@ def main(*args):
     else:
         print("--> Starting Trainer...")
         trainer(train_loader, val_loader2, test_loader2, model, optimizer, scheduler, criterion, 
-                best_model_path, epoch_start, model_name=model_name, path_dataset=path, max_epochs=max_epochs)
+                model_saving_dir, epoch_start, model_name=model_name, path_dataset=path, wandb_run=wandb_run,
+                model_artifact=model_artifact, max_epochs=max_epochs)
         
     print("--> MAIN DONE! ")
     return 0
-
-def printHyperparameters(args): 
-    print("Hyperparameters  :")
-    print("Pre-Trained model: ", args.pre_model)
-    print("Pooling type     : ", args.pooling_type)
-    print("Batch size       : ", args.batch_size)
-    print("Learning rate    : ", args.LR)
-    print("Max epochs       : ", args.max_epochs)
-    print("Data augmentation: ", args.data_aug)
 
 
 if __name__ == '__main__':
@@ -346,11 +323,32 @@ if __name__ == '__main__':
     parser.add_argument("--only_evaluation", required=False, type=int, default=3, help="Only evaluation, 0 = on test set, 1 = on chall set, 2 = on both sets and 3 = train/valid/test")
     parser.add_argument("--path_to_model_weights", required=False, type=str, default="", help="Path to the model weights")
 
+    parser.add_argument("--wandb_run_name", required=True, type=str, help="Wandb run name")
+    parser.add_argument("--wandb_saving_model_name", required=False, type=str, default="", help="Name of the Artifact to save the checkpoints in")
+
     args = parser.parse_args()
 
     ## Checking if arguments are valid
     checkArguments(args)
-    printHyperparameters(args)
+
+    # Initialize Wandb
+    wandb_run = wandb.init(project="IFT6759_MVFoulR", 
+                           name=args.wandb_run_name,
+                           config= {"Pre-Trained model": args.pre_model,
+                                    "Pooling type": args.pooling_type,
+                                    "Batch size": args.batch_size,
+                                    "Learning rate": args.LR,
+                                    "Max epochs": args.max_epochs,
+                                    "Data augmentation": args.data_aug,
+                                    "Number of views": args.num_views,
+                                    "FPS": args.fps}
+                            )
+    
+    if (args.wandb_saving_model_name != ""):
+        model_artifact = wandb.Artifact(name=args.wandb_saving_model_name,
+                                        type="model")
+    else:
+        model_artifact = None
 
 
     # Setup the GPU
@@ -361,7 +359,7 @@ if __name__ == '__main__':
 
     # Start the main training function
     start=time.time()
-    logging.info('Starting main function')
-    main(args, False)
-    logging.info(f'Total Execution Time is {time.time()-start} seconds')
-    logging.shutdown()
+    print('Starting main function')
+    main(args, wandb_run, model_artifact)
+    print(f'Total Execution Time: {time.strftime("%H:%M:%S", time.gmtime(time.time()-start))}')
+    wandb_run.finish()
