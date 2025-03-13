@@ -10,6 +10,7 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 from model import MVNetwork
 from torchvision.models.video import R3D_18_Weights, R2Plus1D_18_Weights, MViT_V2_S_Weights, Swin3D_T_Weights
+from torchvision.models.video import MC3_18_Weights, S3D_Weights
 import wandb
 
 
@@ -58,9 +59,9 @@ def checkArguments(args):
         exit()
 
     # args.pre_model
-    if args.pre_model not in ["r3d_18", "r2plus1d_18", "mvit_v2_s", "swin3d_t"]:
+    if args.pre_model not in ["r3d_18", "r2plus1d_18", "mvit_v2_s", "swin3d_t", "mc3_18", "s3d"]:
         print("Could not find the desired pretrained model")
-        print("Possible options are: r3d_18, r2plus1d_18, mvit_v2_s, swin3d_t")
+        print("Possible options are: r3d_18, r2plus1d_18, mvit_v2_s, swin3d_t, mc3_18, s3d")
         exit()
 
     # args.only_evaluation
@@ -126,6 +127,10 @@ def main(args, wandb_run, model_artifact):
         transforms_model = MViT_V2_S_Weights.KINETICS400_V1.transforms()
     elif pre_model == "swin3d_t":
         transforms_model = Swin3D_T_Weights.KINETICS400_V1.transforms()
+    elif pre_model == "mc3_18":
+        transforms_model = MC3_18_Weights.KINETICS400_V1.transforms()
+    elif pre_model == "s3d":
+         transforms_model = S3D_Weights.KINETICS400_V1.transforms()
     
 
     # Create only the relevant Datasets and DataLoaders for this task
