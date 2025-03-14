@@ -176,8 +176,12 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+
 # Dataset
 mvfouls-sub2-lr/
 
 # Wandb
 VARS model/wandb
+
+# Ignore all files in the SoccerNet directory
+dataset/*

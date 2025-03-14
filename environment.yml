@@ -1,0 +1,4 @@
+name: sn-mvfoul
+dependencies:
+  - python=3.10
+  
