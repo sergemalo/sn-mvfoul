@@ -47,7 +47,31 @@ Once the depth estimation is finished, you can stop the docker container by runn
 docker compose down depth-estimation
 ```
 
+## Segmentation
 
+To segment the videos, you must first run the docker container.
+
+From the dino directory, run the following command: 
+
+```bash
+docker compose up -d segmentation
+``` 
+
+This will start the docker container and the segmentation service.
+
+Once the container is running, you can segment the videos by running the following command:
+
+```bash
+python segmentation_videos.py
+``` 
+
+This will process all the videos in the `dataset/source` directory and save the segmentation masks in the `dataset/segmentation` directory, using the same subfolder structure.
+
+Once the segmentation is finished, you can stop the docker container by running the following command:
+
+```bash
+docker compose down segmentation
+``` 
 
 
 
