@@ -1,0 +1,587 @@
+
+--------------------------- Cuda-dependent modules ----------------------------
+   arrayfire/3.9.0                         cutensor/2.0.1.2     (D)
+   arrow/14.0.0          (t)               faiss/1.7.4
+   arrow/14.0.1          (t)               faiss/1.8.0          (D)
+   arrow/15.0.1          (t)               itk/5.4.0            (vis,D)
+   arrow/16.1.0          (t)               magma/2.7.2          (math)
+   arrow/17.0.0          (t)               magma/2.8.0          (math,D)
+   arrow/18.1.0          (L,t)             namd-multicore/3.0.1 (chem,D)
+   autodock-gpu/1.6                        nccl/2.18.3          (t)
+   beagle-lib/4.0.1      (bio,D)           nextgenmap/0.5.5     (bio,D)
+   chapel-ucx-cuda/2.3.0                   opencv/4.8.1         (vis)
+   cudnn/8.9.5.29        (math,8.9.5)      opencv/4.10.0        (vis)
+   cudnn/9.2.1.18        (math,D:9.2.1)    opencv/4.10.0-2      (vis)
+   cuquantum/24.03.0.4                     opencv/4.11.0        (vis,D)
+   cusparselt/0.5.0.1                      tensorrt/8.6.1.6
+   cusparselt/0.6.1.0    (D)               ucc-cuda/1.2.0
+   cutensor/1.7.0.1                        ucx-cuda/1.14.1
+   cutensor/2.0.0.7                        vmd/1.9.4a57         (vis,D)
+
+----------------------- Compiler-dependent avx2 modules -----------------------
+   adtree/1.1.2                       mash/2.3
+   afni/24.1.03           (bio)       mctc-lib/0.3.1
+   amrfinderplus/3.12.8               mesa-astrophysics/r24.03.1 (phys)
+   andi/0.14                          minc-toolkit/1.9.18.3      (bio)
+   ants/2.5.0             (vis)       mpb/1.11.1
+   armadillo/12.6.4       (math)      mrtrix/3.0.4               (bio)
+   arpack-ng/3.9.1        (math,D)    mstore/0.2.0
+   autodock-vina/1.2.6                mstore/0.3.0               (D)
+   bcftools/1.18          (bio)       multicharge/0.3.0
+   bcftools/1.19          (bio,D)     namd-multicore/3.0.1       (chem)
+   beef/0.1.1             (chem)      nco/5.1.7                  (io)
+   blast+/2.14.1          (bio)       netcdf-c++4/4.3.1          (io)
+   blat/3.7               (bio)       netcdf-fortran/4.6.1       (io)
+   blis/0.9.0             (L)         netcdf/4.9.2               (io)
+   boost/1.82.0           (t)         openbabel-omp/3.1.1        (chem)
+   boost/1.85.0           (t,D)       openbabel/3.1.1            (chem)
+   centrifuge/1.0.4.2     (bio)       openblas/0.3.24            (math)
+   chapel-multicore/2.3.0             opencv/4.8.1               (vis)
+   chapel-ucx/2.3.0                   opencv/4.9.0               (vis)
+   clhep/2.4.6.2          (math)      opencv/4.10.0              (vis)
+   clhep/2.4.7.1          (math,D)    opencv/4.11.0              (vis)
+   coordgenlibs/1.4.2     (chem)      openimagedenoise/2.0.1
+   crest/3.0.1            (chem)      openimagedenoise/2.1.0     (D)
+   crest/3.0.2            (chem,D)    openimageio/2.4.14.0       (vis)
+   das_tool/1.1.6                     openmpi/4.1.5              (L,m)
+   delly/1.1.8                        opensim/4.5.1
+   dftd4/3.6.0            (chem)      openvdb/10.1.0
+   dftd4/3.7.0            (chem,D)    openvkl/1.3.2
+   dnmtools/1.4.4                     ospray/2.12.0
+   eccodes/2.31.0         (geo)       pdal/2.7.1
+   embree/4.3.0                       photospline/2.2.1
+   etsf_io/1.0.4          (io)        pov-ray/3.7.0.10
+   fftw/3.3.10            (math)      qgis/3.28.12               (geo)
+   flexiblas/3.3.1        (L)         r-bundle-bioconductor/3.18 (bio)
+   gate/9.3               (bio)       rdkit/2023.09.3            (chem)
+   gate/9.4               (bio,D)     rdkit/2023.09.5            (chem)
+   gcta/1.94.1            (bio)       rdkit/2024.03.4            (chem)
+   gdal/3.7.2             (geo)       rdkit/2024.03.5            (chem,D)
+   gdal/3.9.1             (geo,D)     rmats/4.3.0
+   geant4/11.1.2          (phys)      rmblast/2.14.1             (bio)
+   geant4/11.2.1          (phys,D)    root/6.28.06               (t)
+   gemma/0.98.5           (bio)       samtools/1.20              (bio,D)
+   gmsh/4.12.2            (phys)      scipoptsuite/9.0.0
+   gmsh/4.13.1            (phys,D)    selscan/2.0.3              (bio)
+   gmt/6.5.0              (geo)       simple-dftd3/0.7.0
+   gromacs-ls/2016.3                  simple-dftd3/1.0.0         (D)
+   gsl/2.7                (math)      sra-toolkit/3.0.9          (bio)
+   hdf5/1.14.2            (io)        suitesparse/5.13.0         (math)
+   igraph/0.10.7          (math)      suitesparse/7.6.0          (math,D)
+   igraph/0.10.13         (math,D)    swat+/60.5.1
+   infernal/1.1.5         (bio)       tblite/0.3.0
+   iq-tree/2.3.6          (bio)       thrift/0.19.0              (D)
+   itk/5.3.0              (vis)       travis-analyzer/220729
+   itk/5.4.0              (vis)       trnascan-se/2.0.12         (bio)
+   jags/4.3.2             (math)      vmd/1.9.4a57               (vis)
+   json-fortran/8.3.0                 vtk/9.3.0                  (vis)
+   kraken2/2.1.3          (bio)       wcslib/8.3
+   libxc/6.2.2            (chem)      xtb/6.6.1                  (chem)
+   maeparser/1.2.4        (chem)      xtb/6.7.1                  (chem,D)
+
+------------------------- MPI-dependent avx2 modules --------------------------
+   abyss/2.3.7                  (bio)
+   amber/22.5-23.5              (chem)
+   ambertools/23.5              (chem)
+   arpack-ng/3.9.1              (math)
+   boost-mpi/1.82.0             (t)
+   casacore/3.6.1
+   cdo/2.2.2                    (geo)
+   cgns/4.5.0                   (phys)
+   dalton/2020.1                (chem)
+   elpa/2023.05.001             (math)
+   esmf/8.6.0                   (geo)
+   esmf/8.7.0                   (geo)
+   esmf/8.8.0                   (geo,D)
+   febio/4.7
+   ferret/7.6.0                 (vis)
+   fftw-mpi/3.3.10              (math)
+   glost/0.3.1                  (t)
+   gromacs-plumed/2020.7        (chem)
+   gromacs-plumed/2023.5        (chem,D)
+   gromacs-ramd/2024.1-RAMD-2.1 (chem)
+   gromacs-swaxs/2021.7-0.5.1   (chem)
+   gromacs/2016.6               (chem)
+   gromacs/2023.3               (chem)
+   gromacs/2023.5               (chem)
+   gromacs/2024.1               (chem)
+   gromacs/2024.4               (chem,D)
+   hdf5-mpi/1.14.2              (io)
+   hdf5-mpi/1.14.4              (io,D)
+   hh-suite/3.3.0               (bio)
+   highfive/2.9.0
+   imb/2021.3
+   kahip/3.14
+   kahip/3.16                   (D)
+   libmesh/1.7.5                (math)
+   mafft-mpi/7.526
+   meep/1.29.0                  (phys)
+   meme/5.5.7
+   mmg/5.7.3
+   modflow/6.5.0
+   mpi4py/3.1.4                 (t)
+   mpi4py/3.1.6                 (t)
+   mpi4py/4.0.0                 (t)
+   mpi4py/4.0.3                 (t,D)
+   mrbayes/3.2.7                (bio)
+   mumps-metis/5.4.1            (t)
+   mumps-metis/5.7.3            (t,D)
+   mumps-parmetis/5.4.1         (t)
+   mumps-parmetis/5.7.3         (t,D)
+   n2p2/2.2.0
+   ncl/6.6.2                    (vis)
+   ncview/2.1.8                 (vis)
+   nektar++/5.7.0               (math)
+   netcdf-c++4-mpi/4.3.1        (io)
+   netcdf-fortran-mpi/4.6.1     (io)
+   netcdf-mpi/4.9.2             (io)
+   octave/7.2.0                 (t)
+   openfoam/v2306               (phys)
+   openfoam/v2312               (phys)
+   openfoam/v2406               (phys)
+   openfoam/11                  (phys)
+   openfoam/12                  (phys,D)
+   openmc/0.15.0
+   openmm/8.0.0                 (chem)
+   openmm/8.1.1                 (chem)
+   openmm/8.2.0                 (chem,D)
+   orca/6.0.0                   (chem)
+   orca/6.0.1                   (chem,D)
+   osu-micro-benchmarks/7.1-1   (t)
+   p4est/2.8.6                  (math)
+   parallelio/2.6.3
+   paraview/5.11.2              (vis)
+   paraview/5.13.1              (vis,D)
+   parmetis/4.0.3               (math)
+   petsc-64bits/3.21.6          (t)
+   petsc-complex/3.20.0         (t)
+   petsc/3.20.0                 (t)
+   petsc/3.21.6                 (t,D)
+   pflotran/5.0.0
+   pflotran/6.0.0               (D)
+   plumed/2.8.4                 (chem)
+   plumed/2.9.0                 (chem)
+   plumed/2.9.2                 (chem,D)
+   pnetcdf/1.12.3               (io)
+   psi4/1.9                     (chem)
+   psi4/1.9.1                   (chem,D)
+   quantumespresso/7.3.1        (chem)
+   raxml-ng/1.2.0
+   salmon/1.10.2                (bio)
+   scalapack/2.2.0              (math)
+   scotch/7.0.3                 (math)
+   simnibs/4.1.0
+   slepc-complex/3.20.1
+   slepc/3.20.1
+   slepc/3.21.2                 (D)
+   sundials/6.6.0
+   taudem/5.3.8
+   telemac-mascaret/8p5r0
+   trilinos/15.1.1              (t)
+   triqs/3.3.1
+   valgrind-mpi/3.21.0          (t)
+   wannier90/3.1.0              (chem)
+   xbraid/3.1.0
+   yaxt/0.10.0                  (t)
+   zoltan/3.901
+
+-------------------------------- Core Modules ---------------------------------
+   abseil/20230125.3
+   actc/1.1
+   admixture/1.3.0                (bio)
+   alevin-fry/0.8.2
+   amos/3.1.0
+   ampl-mp/3.1.0
+   angsd/0.940                    (bio)
+   ansys/2022R2                   (phys)
+   ansys/2023R2                   (phys)
+   ansys/2024R1                   (phys)
+   ansys/2024R1.03                (phys,D)
+   ansysedt/2021R2
+   ansysedt/2023R2                (D)
+   ant/1.10.14                    (t)
+   antlr/2.7.7
+   apptainer/1.2.4                (1:1-1.2.4)
+   apptainer/1.3.4
+   apptainer/1.3.5                (D)
+   aragorn/1.2.41
+   arcs/1.2.7                     (bio)
+   arrow/14.0.0                   (t)
+   arrow/14.0.1                   (t)
+   arrow/15.0.1                   (t)
+   arrow/16.1.0                   (t)
+   arrow/17.0.0                   (t)
+   arrow/18.1.0                   (t)
+   arrow/19.0.1                   (t,D)
+   assimp/5.2.5
+   bacio/2.6.0
+   bamtools/2.5.2                 (bio)
+   bbmap/39.06                    (bio)
+   bcl-convert/4.2.4
+   bcl-convert/4.2.7              (D)
+   beagle-lib/4.0.1               (bio)
+   beagle/5.4-240301
+   bedops/2.4.41
+   bedtools/2.31.0                (bio)
+   bioawk/1.0
+   bismark/0.24.1
+   blast/2.2.26                   (bio)
+   blender/4.0.2                  (vis)
+   bowtie2/2.5.2                  (bio)
+   bowtie2/2.5.4                  (bio,D)
+   bracken/3.0
+   breseq/0.38.2
+   brunsli/0.1
+   btllib/1.6.2
+   bufr/12.0.1
+   bwa-mem2/2.2.1
+   bwa/0.7.17                     (bio)
+   bwa/0.7.18                     (bio,D)
+   capnproto/1.0.2
+   casadi/3.6.7
+   cereal/1.3.2
+   cfitsio/4.3.0                  (vis)
+   cgal/5.5.2                     (math)
+   charm-gems/1.3.3
+   circos/0.69-9                  (vis)
+   clang/17.0.6                   (t)
+   clang/18.1.8                   (t,D)
+   cmake/3.27.7                   (t)
+   cmake/3.31.0                   (t,D)
+   code-server/4.92.2
+   comsol/6.2                     (phys)
+   comsol/6.2.0.415               (phys)
+   comsol/6.3                     (phys,D)
+   cuba/4.2.2
+   custom-ctypes/1.2
+   db/18.1.32
+   dcm2niix/1.0.20230411          (bio)
+   ddt-cpu/22.0.1                 (t)
+   ddt-cpu/23.1.1                 (t,D)
+   ddt-gpu/22.0.1                 (t)
+   ddt-gpu/23.1.1                 (t,D)
+   deepvariant-gpu/1.8.0
+   deepvariant/1.8.0
+   diamond/2.1.8                  (bio)
+   dorado/0.4.1
+   dorado/0.4.3
+   dorado/0.5.3
+   dorado/0.6.1
+   dorado/0.7.0
+   dorado/0.7.2
+   dorado/0.8.0
+   dorado/0.8.3                   (D)
+   ecbuild/3.8.0
+   edirect/20.9.20231210
+   eigen/3.4.0                    (math)
+   energyplus/23.2.0
+   fastahack/1.0.0
+   fastp/0.23.4                   (bio)
+   fastp/0.24.0                   (bio,D)
+   fastqc/0.12.1                  (bio)
+   fcl/0.7.0
+   fermi-lite/20190320
+   filevercmp/20191210
+   filtlong/0.2.1                 (bio)
+   flint/3.0.0                    (math)
+   fmlrc2/0.1.8
+   fmm3d/1.0.4
+   fpc/3.2.2                      (t)
+   fplll/5.4.5
+   freebayes/1.3.7                (bio)
+   freesurfer/7.4.1               (bio)
+   freexl/2.0.0                   (t)
+   fsl/6.0.7.7                    (bio)
+   fsom/20151117
+   g2clib/1.8.0                   (geo)
+   g2lib/3.4.8                    (geo)
+   gatk/4.4.0.0                   (bio)
+   gatk/4.6.1.0                   (bio,D)
+   gcc/12.3                       (L,t,D)
+   gcc/13.3                       (t)
+   gd/2.77
+   gdrcopy/2.3.1
+   gdrcopy/2.4.1                  (D)
+   geant4-data/11.1.2
+   geant4-data/11.2.1             (D)
+   geos/3.12.0                    (geo)
+   gffcompare/0.12.6
+   git-annex/10.20231129          (t)
+   git-lfs/3.4.0
+   glew/2.2.0
+   glfw/3.3.8
+   gmap-gsnap/2024-08-20          (bio)
+   gmap-gsnap/2024-10-20          (bio,D)
+   gnuplot/5.4.8                  (vis)
+   go/1.21.3                      (t)
+   googlebenchmark/1.8.3
+   googletest/1.14.0              (t)
+   gsl-lite/0.41.0
+   guile/2.2.2                    (t)
+   gurobi/10.0.3                  (math)
+   gurobi/11.0.0                  (math)
+   gurobi/11.0.1                  (math)
+   gurobi/11.0.3                  (math)
+   gurobi/12.0.0                  (math,D)
+   haploview/4.2
+   harminv/1.4.1                  (math)
+   harminv/1.4.2                  (math,D)
+   hdf/4.2.16                     (io)
+   healpix/3.82
+   hisat2/2.2.1                   (bio)
+   hmmer/3.4                      (bio)
+   htslib/1.18                    (bio)
+   htslib/1.19                    (bio,D)
+   hwloc/2.9.1                    (L)
+   hwloc/2.10.0                   (D)
+   ijulia-kernel/1.10
+   imkl/2023.2.0                  (math,D)
+   imkl/2024.1.0                  (math)
+   imkl/2024.2.0                  (math)
+   intel/2023.2.1                 (t,D)
+   intel/2024.2.0                 (t)
+   intervaltree/0.1
+   ipopt/3.14.14
+   ipykernel/2023b
+   ipykernel/2024a
+   ipykernel/2024b
+   ipykernel/2025a                (L,D)
+   ipython-kernel/3.10
+   ipython-kernel/3.11            (D)
+   ipython-kernel/3.12
+   ipython-kernel/3.13
+   ir-kernel/4.4
+   ispc/1.21.1
+   ivar/1.4.2
+   jasper/4.0.0                   (vis)
+   java/1.8.0_292                 (t,1.8)
+   java/11.0.22                   (t)
+   java/17.0.6                    (t,D:17)
+   java/21.0.1                    (t,21)
+   jbigkit/2.1
+   jemalloc/5.3.0
+   jsoncpp/1.9.5
+   judy/1.0.5
+   julia/1.9.3                    (t)
+   julia/1.10.0                   (t)
+   julia/1.11.3                   (t,D)
+   kaiju/1.10.1                   (bio)
+   kalign/3.3.5
+   kim-api/2.3.0                  (chem)
+   kma/1.4.14
+   ldc/1.30.0
+   lerc/4.0.0
+   libaec/1.0.6
+   libccd/2.1
+   libcerf/2.4                    (math)
+   libctl/4.5.1                   (t)
+   libdap/3.20.11
+   libdivsufsort/2.0.1
+   libfabric/1.18.0               (L)
+   libfabric/1.21.0               (D)
+   libgdsii/0.21
+   libgeotiff/1.7.1
+   libraw/0.21.2
+   librttopo/1.1.0
+   libspatialindex/1.9.3          (phys)
+   libspatialite/5.1.0            (phys)
+   libyaml/0.2.5
+   links/2.0.1                    (bio)
+   llvm/14.0.3                    (t)
+   llvm/16.0.6                    (t)
+   llvm/18.1.8                    (t,D)
+   lmdb/0.9.31
+   lsd2/2.4.1
+   mafft/7.526                    (bio)
+   mariadb-connector-c/3.3.7
+   mariadb/11.5.0                 (t)
+   matio/1.5.26                   (io)
+   matlab/2023b.2                 (t)
+   matlab/2024b.1                 (t,D)
+   maven/3.9.6                    (t)
+   mcr/R2024a                     (t)
+   megahit/1.2.9                  (bio)
+   meta-farm/1.0.2
+   metabat/2.17                   (bio)
+   metis-64idx/5.1.0
+   metis/5.1.0                    (math)
+   mii/1.1.2                      (L)
+   miniasm/0.3-20191007           (bio)
+   minimap2/2.26                  (bio)
+   minimap2/2.28                  (bio,D)
+   mixcr/4.7.0                    (bio)
+   mmseqs2/15-6f452
+   mujoco/3.0.1
+   mujoco/3.1.6                   (D)
+   multichoose/1.0.3
+   mummer/4.0.0rc1                (bio)
+   muparser/2.3.4                 (math)
+   muparserx/4.0.12
+   mustang/3.2.4
+   mysql/8.3.0                    (t)
+   nextflow/23.10.0
+   nextflow/24.04.4               (D)
+   nextgenmap/0.5.5               (bio)
+   nibabel/5.2.0
+   nlopt/2.7.1                    (math)
+   nlopt/2.9.1                    (math,D)
+   nodejs/18.17.1                 (t)
+   nodejs/20.16.0                 (t,D)
+   nvhpc/23.9                     (t,D)
+   nvhpc/25.1                     (t)
+   occt/7.7.1
+   occt/7.8.1                     (D)
+   octomap/1.10.0
+   opencolorio/2.3.0              (vis)
+   openslide/4.0.0                (vis)
+   optix/6.5.0
+   optix/8.0.0                    (D)
+   orad/2.6.1
+   paml/4.10.7                    (bio)
+   parasail/2.6.2
+   perl/5.36.1                    (t,D)
+   perl/5.36.1                    (t)
+   pgplot/5.2.2                   (vis)
+   picard/3.1.0                   (bio)
+   pilercr/1.06
+   plink/2.00a5.8                 (bio)
+   plink/2.00-20231024-avx2       (bio,D)
+   pmix/4.2.4                     (L)
+   pmix/5.0.2                     (D)
+   podman/4.9.5
+   poplddecay/3.43
+   postgresql/16.0                (t)
+   primme/3.2
+   prinseq/0.20.4                 (bio)
+   prodigal/2.6.3                 (bio)
+   proj/9.2.0                     (geo)
+   proj/9.4.1                     (geo,D)
+   protobuf/24.4                  (t)
+   prrte/3.0.5
+   pullseq/1.0.2
+   pytest/7.4.0
+   pytest/8.2.2                   (D)
+   python-build-bundle/2023b
+   python-build-bundle/2024a
+   python-build-bundle/2025a      (D)
+   python/3.10.13                 (t,3.10)
+   python/3.11.5                  (t,D:3.11)
+   python/3.12.4                  (L,t)
+   python/3.13.2                  (t)
+   qca/2.3.7                      (geo)
+   qcint/6.1.2
+   qhull/2020.2                   (math)
+   qiime2/2023.5
+   qiime2/2024.5                  (D)
+   qrupdate/1.1.2                 (math)
+   qscintilla/2.14.1              (t)
+   qt/5.15.11                     (t)
+   qt/6.5.3                       (t,D)
+   qtkeychain/0.14.1
+   qualimap/2.3
+   qwt/6.2.0                      (t)
+   r/4.3.1                        (t)
+   r/4.4.0                        (t,D)
+   racon/1.5.0                    (bio)
+   rapidjson/1.1.0
+   raqm/0.10.1
+   rkcommon/1.11.0
+   rsem/1.3.3                     (bio)
+   rstudio-server/4.3             (t)
+   rstudio-server/4.4             (t,D)
+   ruby/3.2.2                     (t)
+   rust/1.70.0                    (t)
+   rust/1.76.0                    (t,D)
+   sambamba/1.0.1                 (bio)
+   samblaster/0.1.26              (bio)
+   samtools/1.18                  (bio)
+   scipy-stack/2023b              (math)
+   scipy-stack/2024a              (math)
+   scipy-stack/2024b              (math)
+   scipy-stack/2025a              (L,math,D)
+   seqkit/2.5.1
+   seqlib/1.2.0
+   seqtk/1.4                      (bio)
+   shapeit5/5.1.1
+   slurm-completion/23.02.7
+   smithwaterman/20160702
+   smrtlink-sequel2/13.1.0.221970
+   snpeff/5.2                     (bio)
+   soci/4.0.3
+   spades/3.15.4                  (bio)
+   spades/4.0.0                   (bio,D)
+   sparsehash/2.0.4
+   spdlog/1.11.0
+   spectra/1.0.1
+   ssw/1.1
+   ssw/1.2.5                      (D)
+   stacks/2.66                    (bio)
+   stacks/2.67                    (bio,D)
+   star/2.7.11a                   (bio)
+   star/2.7.11b                   (bio,D)
+   starccm-mixed/18.04.008        (phys)
+   starccm-mixed/18.06.006        (phys)
+   starccm-mixed/19.04.007        (phys,D)
+   starccm/18.04.008-R8           (phys)
+   starccm/18.06.006-R8           (phys)
+   starccm/19.04.007-R8           (phys,D)
+   stringtie/2.2.3                (bio)
+   subread/2.0.6                  (bio)
+   swig/4.1.1
+   swig/4.2.1                     (D)
+   symengine/0.11.1
+   symengine/0.11.2
+   symengine/0.13.0
+   symengine/0.14.0               (D)
+   tabix/0.2.6                    (bio)
+   tabixpp/1.1.2
+   tbb/2021.10.0                  (t)
+   thrift/0.19.0
+   trimmomatic/0.39               (bio)
+   ucc/1.2.0                      (L)
+   ucc/1.3.0                      (D)
+   ucx/1.14.1                     (L)
+   ucx/1.16.0                     (D)
+   udunits/2.2.28                 (t)
+   varscan/2.4.6
+   vaspkit/1.5.1
+   vcflib/1.0.9
+   vcftools/0.1.16                (bio)
+   voro++/0.4.6                   (math)
+   w3emc/2.11.0
+   wasp/4.2.0
+   wfa2/2.3.4
+   xdrfile/1.1.4                  (t)
+   xml-libxml/2.0208
+   xtb/6.6.1                      (chem)
+   xtensor/0.25.0
+
+------------------------------- Custom modules --------------------------------
+   arch/avx     arch/sse3 (D)    gentoo/2020 (S,D)    StdEnv/2020 (S)
+   arch/avx2    CCconfig  (L)    gentoo/2023 (S,L)    StdEnv/2023 (S,L,D)
+
+  Where:
+   Aliases:  Aliases exist: foo/1.2.3 (1.2) means that "module load foo/1.2" will load foo/1.2.3
+   D:        Default Module
+   L:        Module is loaded
+   S:        Module is Sticky, requires --force to unload or purge
+   bio:      Bioinformatic libraries/apps / Logiciels de bioinformatique
+   chem:     Chemistry libraries/apps / Logiciels de chimie
+   geo:      Geography libraries/apps / Logiciels de géographie
+   io:       Input/output software / Logiciel d'écriture/lecture
+   m:        MPI implementations / Implémentations MPI
+   math:     Mathematical libraries / Bibliothèques mathématiques
+   phys:     Physics libraries/apps / Logiciels de physique
+   t:        Tools for development / Outils de développement
+   vis:      Visualisation software / Logiciels de visualisation
+
+If the avail list is too long consider trying:
+
+"module --default avail" or "ml -d av" to just list the default modules.
+"module overview" or "ml ov" to display the number of modules for each name.
+
+Use "module spider" to find all possible modules and extensions.
+Use "module keyword key1 key2 ..." to search for all possible modules matching
+any of the "keys".
+
+
