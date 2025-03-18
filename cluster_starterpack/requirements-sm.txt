@@ -1,0 +1,5 @@
+torch
+torchvision
+SoccerNet
+av
+wandb==0.18.0
