@@ -1,0 +1,8 @@
+time python main.py --path ./mvfouls-all-lr/ --max_epochs 10 --pre_model swin3d_t --wandb_run_name swin_t3 --start_frame 0 --end_frame 100 --fps 8 --batch_size 2 --num_views 2
+
+
+time python main.py --path ./mvfouls-all-lr/ --max_epochs 10 --pre_model swin3d_t --wandb_run_name swin_t-ba1 --start_frame 75 --end_frame 100 --fps 16  --num_views 2 --GPU 0 --batch_size 4
+
+
+time python main.py --path ./mvfouls-all-lr/ --max_epochs 10 --pre_model mvit_v2_s --wandb_run_name mvit_v2-ba1 --start_frame 75 --end_frame 100 --fps 16  --num_views 2 --GPU 1 --batch_size 8
+
