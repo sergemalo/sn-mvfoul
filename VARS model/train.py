@@ -10,20 +10,26 @@ import wandb
 def print_results(results, dataset, wandb_run, epoch):
     
     print("RESULTS: ")
-    print("  Action class accuracy: {:.3f} %".format(results["accuracy_action"]))
+    print("  Action class accuracy:      {:.3f} %".format(results["accuracy_action"]))
     print("  Offence severity accuracy:  {:.3f} %".format(results["accuracy_offence_severity"]))
+    print("  Action class BA:       {:.3f} %".format(results["balanced_accuracy_action"]))
+    print("  Offence severity BA:   {:.3f} %".format(results["balanced_accuracy_offence_severity"]))
 
     # Log the statistics to Wandb 
     # Test set -> Summary statistic
     if (dataset == "Test"):
         wandb_run.summary["Test_acc_action"] = round(results["accuracy_action"], 3)
         wandb_run.summary["Test_acc_offense_severity"] = round(results["accuracy_offence_severity"], 3)
+        wandb_run.summary["Test_BA_action"] = round(results["balanced_accuracy_action"], 3)
+        wandb_run.summary["Test_BA_offense_severity"] = round(results["balanced_accuracy_offence_severity"], 3)
 
     # Train & Validation sets -> Plots    
     else:
         wandb_run.log({"Epoch": epoch, 
                     f"{dataset}_acc_action": round(results["accuracy_action"], 3), 
-                    f"{dataset}_acc_offense_severity": round(results["accuracy_offence_severity"], 3)}
+                    f"{dataset}_acc_offense_severity": round(results["accuracy_offence_severity"], 3),
+                    f"{dataset}_BA_action": round(results["balanced_accuracy_action"], 3),
+                    f"{dataset}_BA_offense_severity": round(results["accuracy_offence_severity"], 3)}
                     )
 
     return
@@ -36,9 +42,14 @@ def set_wandb_metrics(wandb_run):
     wandb_run.define_metric(name="Train_acc_action", summary="max", step_metric="Epoch")
     wandb_run.define_metric(name="Valid_acc_action", summary="max", step_metric="Epoch")
 
+    wandb_run.define_metric(name="Train_BA_action", summary="max", step_metric="Epoch")
+    wandb_run.define_metric(name="Valid_BA_action", summary="max", step_metric="Epoch")
+
     wandb_run.define_metric(name="Train_acc_offense_severity", summary="max", step_metric="Epoch")
     wandb_run.define_metric(name="Valid_acc_offense_severity", summary="max", step_metric="Epoch")
 
+    wandb_run.define_metric(name="Train_BA_offense_severity", summary="max", step_metric="Epoch")
+    wandb_run.define_metric(name="Valid_BA_offense_severity", summary="max", step_metric="Epoch")
 
 def trainer(train_loader,
             val_loader2,

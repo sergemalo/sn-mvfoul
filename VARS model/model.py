@@ -34,6 +34,7 @@ class MVNetwork(torch.nn.Module):
         elif net_name == "swin3d_t":                        # Swin3d Transformer (tiny)
             weights_model = Swin3D_T_Weights.DEFAULT        # KINETICS400_V1
             network = swin3d_t(weights=weights_model)
+            self.feat_dim = 400
         elif net_name == "mc3_18":
             weights_model = MC3_18_Weights.DEFAULT
             network = mc3_18(weights=weights_model)
