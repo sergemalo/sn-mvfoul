@@ -188,3 +188,4 @@ dataset/*
 
 # Scripts output
 videos_less_*.txt
+non_standard_clips.txt
