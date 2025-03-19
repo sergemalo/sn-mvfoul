@@ -36,8 +36,14 @@ process_video() {
     # Get number of frames using ffprobe
     frames=$(ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 "$video")
     
+    # Check if $frames is a valid number
+    if ! [[ "$frames" =~ ^[0-9]+$ ]]; then
+        echo "Warning: Could not get frame count for $video"
+        return 1
+    fi
+
     # Check if number of frames is less than threshold
-    if [ -n "$frames" ] && [ "$frames" -lt "$FRAME_THRESHOLD" ]; then
+    if [ "$frames" -lt "$FRAME_THRESHOLD" ]; then
         echo "File: $video - Frames: $frames" >> "$OUTPUT_FILE"
     fi
 }
