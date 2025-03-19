@@ -100,7 +100,7 @@ class MultiViewDataset(Dataset):
                         final_frames = torch.cat((final_frames, frames[j,:,:,:].unsqueeze(0)), 0)
 
             if final_frames is None:
-                raise ValueError(f"Failed to load frames for index {index} (Path: {self.clips[index][index_view]})")
+                raise ValueError(f"Failed to load frames for index {index}. Available frames count: {len(frames)}. Path: {self.clips[index][index_view]}")
 
             final_frames = final_frames.permute(0, 3, 1, 2)
 
