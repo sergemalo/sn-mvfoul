@@ -24,7 +24,8 @@ class MultiViewDataset(Dataset):
         split: str,
         num_views: int,
         transform: Optional[callable] = None,
-        transform_model: Optional[callable] = None
+        transform_model: Optional[callable] = None,
+        depth_path: Union[str, Path] = None
     ):
         """Initialize the dataset.
         
@@ -37,7 +38,10 @@ class MultiViewDataset(Dataset):
             num_views: Number of views per action
             transform: Optional transform to apply to frames
             transform_model: Model-specific transform to apply
+            depth_path: Path to the depth video dataset
         """
+        self.path = path
+        self.depth_path = depth_path
         self.split = split
         self.start = start
         self.end = end
@@ -98,6 +102,10 @@ class MultiViewDataset(Dataset):
         final_frames = self.transform_model(final_frames)
         
         return final_frames.permute(1, 0, 2, 3)
+    
+    def _get_depth_video_path(self, video_path: str) -> str:
+        """Replace self.path with self.depth_path in video_path."""
+        return video_path.replace(self.path, self.depth_path)
 
     def _pick_view(self, num_views: int, previous_views: List[int]) -> int:
         """Select view index based on split type."""
@@ -134,6 +142,24 @@ class MultiViewDataset(Dataset):
                                    output_format="THWC", 
                                    pts_unit="sec")
             final_frames = self._process_video_frames(video)
+
+            # --------------------------------------------------------------------------
+            # Load and add depth channel
+            if self.depth_path is not None:
+                depth_video_path = self._get_depth_video_path(self.clips[index][index_view])
+                # Check if depth video path exists
+                if not os.path.exists(depth_video_path):
+                    print(f"Error: Depth video path '{depth_video_path}' does not exist.")
+                    exit(1)
+
+                depth_video, _, _ = read_video(depth_video_path, 
+                                    output_format="THWC", 
+                                    pts_unit="sec")
+                depth_final_frames = self._process_video_frames(depth_video)
+
+                # Add the first channel of depth_final_frames as a fourth channel to final_frames
+                final_frames = torch.cat((final_frames, depth_final_frames[0:1, :, :, :]), 0)
+            # --------------------------------------------------------------------------
             
             # Combine views
             if videos is None:
@@ -165,3 +191,65 @@ class MultiViewDataset(Dataset):
     def get_weights(self) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get class weights for offense severity and action types."""
         return self.weights_offence_severity, self.weights_action 
+
+if __name__ == "__main__":
+    import os
+
+    # Define dataset parameters
+    dataset_path = "mvfouls-sub2-lr/videos"
+    depth_path = "mvfouls-sub2-lr/depth"
+    start_frame = 25
+    end_frame = 75
+    fps = 25
+    split = "Train"
+    num_views = 3
+    
+    # Define a simple transform (identity transform)
+    def transform_model(x):
+        return x
+    
+    # Check if dataset path exists
+    if not os.path.exists(dataset_path):
+        print(f"Error: Dataset path '{dataset_path}' does not exist.")
+        exit(1)
+    
+    print(f"Loading dataset from {dataset_path}...")
+    
+    # Create dataset
+    dataset = MultiViewDataset(
+        path=dataset_path,
+        depth_path=depth_path,
+        start=start_frame,
+        end=end_frame,
+        fps=fps,
+        split=split,
+        num_views=num_views,
+        transform=None,
+        transform_model=transform_model
+    )
+    
+    print(f"Dataset loaded successfully with {len(dataset)} items.")
+    print(f"Class distributions:")
+    offense_dist, action_dist = dataset.get_distribution()
+    print(f"  Offense severity: {offense_dist}")
+    print(f"  Action type: {action_dist}")
+    
+    # Loop through items and display info
+    for i in range(min(5, len(dataset))):
+        try:
+            offense_label, action_label, videos, action_id = dataset[i]
+            
+            print("--------------------------------")
+            print(f"\nItem {i}:")
+            print(f"  Action ID: {action_id}")
+            print(f"  Offense severity label shape: {offense_label.shape}, values: {offense_label}")
+            print(f"  Action type label shape: {action_label.shape}, values: {action_label}")
+            print(f"  Videos tensor shape: {videos.shape}")
+            
+            # Display info about each view
+            num_views_actual = videos.shape[0]
+            for v in range(num_views_actual):
+                print(f"  View {v} shape: {videos[v].shape}")
+                
+        except Exception as e:
+            print(f"Error processing item {i}: {str(e)}") 
