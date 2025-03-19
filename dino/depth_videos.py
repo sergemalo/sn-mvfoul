@@ -102,10 +102,13 @@ def main():
             client.get_depth_video(
                 video_path=video_path,
                 output_path=output_path,
-                batch_size=6,
+                batch_size=3,
                 # scale_factor=1.0,
                 codec='mp4v',
-                colormap_name='binary'
+                colormap_name='binary',
+                start_frame=63,
+                end_frame=87,
+                crop_method='fill'
             )
             # logger.info(f"Successfully processed: {video_path} -> {output_path}")
         except Exception as e:
