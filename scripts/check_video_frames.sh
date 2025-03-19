@@ -38,7 +38,7 @@ process_video() {
     
     # Check if $frames is a valid number
     if ! [[ "$frames" =~ ^[0-9]+$ ]]; then
-        echo "Warning: Could not get frame count for $video"
+        echo "File: $video - Could not get frame count" >> "$OUTPUT_FILE"
         return 1
     fi
 
