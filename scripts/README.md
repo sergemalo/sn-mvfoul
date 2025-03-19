@@ -47,9 +47,6 @@ Videos present in /path/to/source but missing from /path/to/target:
 ----------------------------------------
 Missing: subfolder1/video1.mp4
 Missing: subfolder2/clip_001.mp4
-
-To sync missing files, you can run:
-rsync -av --include="*/" --include="*.mp4" --include="*.avi" --include="*.mov" --include="*.mkv" --exclude="*" "/path/to/source/" "/path/to/target/"
 ```
 
 ## Requirements

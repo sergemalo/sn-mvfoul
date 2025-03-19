@@ -48,5 +48,3 @@ rm -f rsync_output.tmp
 # Print summary
 echo "----------------------------------------"
 echo "Analysis complete. Results are in $OUTPUT_FILE"
-echo "To sync missing files, you can run:"
-echo "rsync -av --include=\"*/\" --include=\"*.mp4\" --include=\"*.avi\" --include=\"*.mov\" --include=\"*.mkv\" --exclude=\"*\" \"$SOURCE_DIR/\" \"$TARGET_DIR/\"" 
