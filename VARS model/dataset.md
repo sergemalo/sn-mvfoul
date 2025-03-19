@@ -24,78 +24,130 @@ graph TD
     A[Start __getitem__] --> B[Initialize prev_views list]
     B --> C[Loop through views for current action]
     C --> D{Is Training Split?}
-    D -->|Yes| E[Randomly select 2 views]
-    D -->|No| F[Use sequential views]
-    E --> G[Load video]
+    D -->|Yes| E[Limit to 2 views]
+    D -->|No| F[Process all views]
+    E --> G[Select view with _select_views]
     F --> G
-    G --> H[Extract frames from start to end]
-    H --> I[Downsample frames based on factor]
-    I --> J[Apply transformations]
-    J --> K[Organize tensor dimensions]
-    K --> L{First view?}
-    L -->|Yes| M[Initialize videos tensor]
-    L -->|No| N[Concatenate with existing views]
-    M --> O[Final tensor permutation]
-    N --> O
-    O --> P[Return results based on split type]
+    G --> H[Track selected view]
+    H --> I[Load video frames]
+    I --> J[Process frames with _process_video_frames]
+    J --> K[Combine with other views]
+    K --> L[Continue loop or exit]
+    L --> M[Final tensor permutation]
+    M --> N[Return appropriate labels/data]
 ```
 
-## Detailed Steps
+## Key Components
 
-1. **View Selection**
-   - For training (`split == 'Train'`):
-     - Randomly selects 2 views even if more are available
-     - Ensures no duplicate views are selected
-   - For validation/testing:
-     - Uses all available views (up to 4)
+### 1. View Selection with `_select_views` Method
+```python
+def _select_views(self, num_views: int, prev_views: List[int]) -> int:
+    """Select view index based on split type."""
+    if self.split == 'Train':
+        while True:
+            index = random.randint(0, num_views - 1)
+            if index not in prev_views:
+                return index
+    return len(prev_views)
+```
 
-2. **Video Loading and Processing**
-   ```python
-   video, _, _ = read_video(self.clips[index][index_view], output_format="THWC")
-   frames = video[self.start:self.end,:,:,:]
-   ```
-   - Loads video using torchvision's read_video
-   - Extracts frames between specified start and end points
+This helper method replaces the previous more complex inline code, making the view selection logic more readable and maintainable:
+- For training: Randomly selects a view not previously selected
+- For validation/testing: Returns sequential views
 
-3. **Frame Downsampling**
-   - Uses a factor to reduce the number of frames
-   - Factor is calculated as: `(end - start) / (((end - start) / 25) * fps)`
-   - Creates a consistent number of frames across videos
+### 2. Video Processing with `_process_video_frames` Method
+```python
+def _process_video_frames(self, video: torch.Tensor) -> torch.Tensor:
+    """Process video frames: extract, downsample, and transform."""
+    # Extract frames between start and end
+    frames = video[self.start:self.end, :, :, :]
+    
+    # Downsample frames
+    final_frames = None
+    for j in range(len(frames)):
+        if j % self.factor < 1:
+            frame = frames[j, :, :, :].unsqueeze(0)
+            final_frames = frame if final_frames is None else torch.cat((final_frames, frame), 0)
+    
+    # Apply transformations
+    final_frames = final_frames.permute(0, 3, 1, 2)
+    if self.transform:
+        final_frames = self.transform(final_frames)
+    final_frames = self.transform_model(final_frames)
+    
+    return final_frames.permute(1, 0, 2, 3)
+```
 
-4. **Transformations**
-   - Applies two types of transformations:
-     1. General transformations (`self.transform`)
-     2. Model-specific transformations (`self.transform_model`)
-   - Handles tensor dimension reordering for proper processing
+This method encapsulates the entire frame processing pipeline:
+1. Extracts frames from the specified range
+2. Downsamples frames according to the factor
+3. Permutes dimensions for proper processing
+4. Applies transformations
+5. Returns the processed frames
 
-5. **Multi-view Assembly**
-   - Combines multiple views into a single tensor
-   - Handles different view configurations (1, 2, or more views)
-   - Final shape: (V, C, N, H, W)
+### 3. Main `__getitem__` Method
 
-6. **Return Values**
-   - For regular splits:
-     ```python
-     return self.labels_offence_severity[index][0], self.labels_action[index][0], videos, self.number_of_actions[index]
-     ```
-   - For challenge split:
-     ```python
-     return -1, -1, videos, str(index)
-     ```
+The improved `__getitem__` method follows a clear step-by-step approach:
 
-## Key Features
+```python
+def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Union[str, int]]:
+    prev_views = []
+    videos = None
+    
+    # Process each view
+    for _ in range(len(self.clips[index])):
+        if len(prev_views) == 2 and self.split == 'Train':
+            break
+            
+        # Select view index
+        index_view = self._select_views(len(self.clips[index]), prev_views)
+        if self.split == 'Train':
+            prev_views.append(index_view)
+        
+        # Load and process video
+        video, _, _ = read_video(self.clips[index][index_view], 
+                               output_format="THWC", 
+                               pts_unit="sec")
+        final_frames = self._process_video_frames(video)
+        
+        # Combine views
+        if videos is None:
+            videos = final_frames.unsqueeze(0)
+        else:
+            videos = torch.cat((videos, final_frames.unsqueeze(0)), 0)
+    
+    # Final tensor organization
+    if self.num_views not in [1, 5]:
+        videos = videos.squeeze()
+    videos = videos.permute(0, 2, 1, 3, 4)
+    
+    # Return appropriate labels based on split
+    if self.split != 'Chall':
+        return (self.labels_offence_severity[index][0],
+               self.labels_action[index][0],
+               videos,
+               self.number_of_actions[index])
+    return -1, -1, videos, str(index)
+```
 
-1. **Flexible View Handling**
-   - Supports variable number of views (1 to 4)
-   - Special handling for training vs. validation/testing
+## Key Improvements in the New Design
 
-2. **Memory Efficient**
-   - Downsamples frames to manage memory usage
-   - Only loads required views
+1. **Improved Modularity**
+   - Separate helper methods for view selection and frame processing
+   - Clear separation of responsibilities
+   - Easier to maintain and test individual components
 
-3. **Training Optimization**
-   - Random view selection during training for better generalization
-   - Consistent 2-view processing for batch training
+2. **Better Code Organization**
+   - Logical grouping of related operations
+   - Clear comments explaining each step
+   - Consistent naming conventions
 
-4. **Challenge Mode Support**
-   - Special handling for challenge data with placeholder labels 
+3. **Type Annotations**
+   - Full type annotations for parameters and return values
+   - Improved IDE support and code clarity
+   - Better error checking during development
+
+4. **More Readable Logic**
+   - Simplified conditional statements
+   - Explicit handling of training vs. evaluation modes
+   - Clearer tracking of selected views 
