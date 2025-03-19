@@ -1,0 +1,29 @@
+time python main.py --path ./mvfouls-all-lr/ --max_epochs 10 --pre_model swin3d_t --wandb_run_name swin_t3 --start_frame 0 --end_frame 100 --fps 8 --batch_size 2 --num_views 2
+
+
+time python main.py --path ./mvfouls-all-lr/ --max_epochs 10 --pre_model swin3d_t --wandb_run_name swin_t-ba1 --start_frame 75 --end_frame 100 --fps 16  --num_views 2 --GPU 0 --batch_size 4
+
+
+time python main.py --path ./mvfouls-all-lr/ --max_epochs 10 --pre_model mvit_v2_s --wandb_run_name mvit_v2-ba1 --start_frame 75 --end_frame 100 --fps 16  --num_views 2 --GPU 1 --batch_size 4
+
+
+time python main.py --pooling_type "attention" --start_frame 63 --end_frame 87 --fps 17 --path ./mvfouls-all-lr/ --pre_model "mvit_v2_s" --path_to_model_weights "models/VARS/baseline-14_model.pth" -wandb_run_name baseline-1 --max_epochs 10 --GPU 0
+
+time python main.py --path ./mvfouls-all-lr/ --max_epochs 10 --pre_model mvit_v2_s --wandb_run_name mvit_v2-63-1 --start_frame 63 --end_frame 87 --fps 17 --GPU 1
+
+
+
+
+time python main.py --path ./mvfouls-all-720p/ --data_aug No --max_epochs 20 --pre_model swin3d_t --wandb_run_name swin_t-720p-63-2 --start_frame 62 --end_frame 87 --fps 16 --GPU 0 --batch_size 4
+
+time python main.py --path ./mvfouls-all-720p/ --data_aug No --max_epochs 20 --pre_model mvit_v2_s --wandb_run_name mvit_v2_s-720p-63-2 --start_frame 62 --end_frame 87 --fps 16 --GPU 1 --batch_size 4
+
+
+ssss
+
+time python main.py --path ./mvfouls-all-lr/ --data_aug No --max_epochs 20 --pre_model swin3d_s --wandb_run_name swin_s-63-1 --start_frame 62 --end_frame 87 --fps 16 --GPU 0 --batch_size 4
+
+
+
+RESNET ON THE CLUSTER:
+main.py --max_epochs 20 --path /localscratch/francispicard2000.1214.0/data/mvfouls --pre_model r3d_18 --data_aug No --batch_size 8 --wandb_run_name cluster-resnet-reproduce --fps 16 --start_frame 62 --end_frame 87	
