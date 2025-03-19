@@ -1,131 +1,167 @@
 from torch.utils.data import Dataset
-from random import random
 import torch
 import random
 from data_loader import label2vectormerge, clips2vectormerge
 from torchvision.io.video import read_video
+from typing import Optional, Tuple, List, Union
+from pathlib import Path
 
 
 class MultiViewDataset(Dataset):
-    def __init__(self, path, start, end, fps, split, num_views, transform=None, transform_model=None):
-
-        if split != 'Chall':
-            # To load the annotations
-            self.labels_offence_severity, self.labels_action, self.distribution_offence_severity,self.distribution_action, not_taking, self.number_of_actions = label2vectormerge(path, split, num_views)
-            self.clips = clips2vectormerge(path, split, num_views, not_taking)
-            self.distribution_offence_severity = torch.div(self.distribution_offence_severity, len(self.labels_offence_severity))
-            self.distribution_action = torch.div(self.distribution_action, len(self.labels_action))
-
-            self.weights_offence_severity = torch.div(1, self.distribution_offence_severity)
-            self.weights_action = torch.div(1, self.distribution_action)
-        else:
-            self.clips = clips2vectormerge(path, split, num_views, [])
-
-        # INFORMATION ABOUT SELF.LABELS_OFFENCE_SEVERITY
-        # self.labels_offence_severity => Tensor of size of the dataset. 
-        # each element of self.labels_offence_severity is another tensor of size 4 (the number of classes) where the value is 1 if it is the class and 0 otherwise
-        # for example if it is not an offence, then the tensor is [1, 0, 0, 0]. 
-
-        # INFORMATION ABOUT SELF.LABELS_ACTION
-        # self.labels_action => Tensor of size of the dataset. 
-        # each element of self.labels_action is another tensor of size 8 (the number of classes) where the value is 1 if it is the class and 0 otherwise
-        # for example if the action is a tackling, then the tensor is [1, 0, 0, 0, 0, 0, 0, 0]. 
-
-        # INFORMATION ABOUT SLEF.CLIPS
-        # self.clips => list of the size of the dataset
-        # each element of the list is another list of size of the number of views. The list contains the paths to all the views of that particular action.
-
-        # The offence_severity groundtruth of the i-th action in self.clips, is the i-th element in the self.labels_offence_severity tensor
-        # The type of action groundtruth of the i-th action in self.clips, is the i-th element in the self.labels_action tensor
+    """Dataset class for handling multi-view soccer action videos.
+    
+    This dataset loads and processes multiple views of soccer actions, supporting
+    both training and challenge splits. It handles video frame extraction, 
+    transformations, and label management.
+    """
+    
+    def __init__(
+        self,
+        path: Union[str, Path],
+        start: int,
+        end: int,
+        fps: int,
+        split: str,
+        num_views: int,
+        transform: Optional[callable] = None,
+        transform_model: Optional[callable] = None
+    ):
+        """Initialize the dataset.
         
+        Args:
+            path: Path to the dataset
+            start: Starting frame index
+            end: Ending frame index
+            fps: Frames per second
+            split: Dataset split ('Train', 'Val', 'Test', or 'Chall')
+            num_views: Number of views per action
+            transform: Optional transform to apply to frames
+            transform_model: Model-specific transform to apply
+        """
         self.split = split
         self.start = start
         self.end = end
         self.transform = transform
         self.transform_model = transform_model
         self.num_views = num_views
-
+        
+        # Calculate frame sampling factor
         self.factor = (end - start) / (((end - start) / 25) * fps)
-
-        self.length = len(self.clips)
-
-        print(f"--> Dataset {split}: Total actions: {self.length + len(not_taking)}; Number of actions to use: {self.length}; Number of not taking actions: {len(not_taking)}")
-
-    def getDistribution(self):
-        return self.distribution_offence_severity, self.distribution_action, 
-    def getWeights(self):
-        return self.weights_offence_severity, self.weights_action, 
-
-
-    # RETURNS
-    #
-    # self.labels_offence_severity[index][0] => tensor of size 4. Example [1, 0, 0, 0] if the action is not an offence
-    # self.labels_action[index][0] => tensor of size 8.           Example [1, 0, 0, 0, 0, 0, 0, 0] if the type of action is a tackling
-    # videos => tensor of shape V, C, N, H, W with V = number of views, C = number of channels, N = the number of frames, H & W = height & width
-    # self.number_of_actions[index] => the id of the action
-    #
-    def __getitem__(self, index):
-
-        prev_views = []
-
-        for num_view in range(len(self.clips[index])):
-
-            index_view = num_view
-
-            if len(prev_views) == 2:
-                continue
-
-            # As we use a batch size > 1 during training, we always randomly select two views even if we have more than two views.
-            # As the batch size during validation and testing is 1, we can have 2, 3 or 4 views per action.
-            cont = True
-            if self.split == 'Train':
-                while cont:
-                    aux = random.randint(0,len(self.clips[index])-1)
-                    if aux not in prev_views:
-                        cont = False
-                index_view = aux
-                prev_views.append(index_view)
-
-
-            video, _, _ = read_video(self.clips[index][index_view], output_format="THWC", pts_unit="sec")
-            frames = video[self.start:self.end,:,:,:]
-
-            final_frames = None
-
-            for j in range(len(frames)):
-                if j%self.factor<1:
-                    if final_frames == None:
-                        final_frames = frames[j,:,:,:].unsqueeze(0)
-                    else:
-                        final_frames = torch.cat((final_frames, frames[j,:,:,:].unsqueeze(0)), 0)
-
-            if final_frames is None:
-                raise ValueError(f"Failed to load frames for index {index}. Available frames count: {len(frames)}. Path: {self.clips[index][index_view]}")
-
-            final_frames = final_frames.permute(0, 3, 1, 2)
-
-            if self.transform != None:
-                final_frames = self.transform(final_frames)
-
-            final_frames = self.transform_model(final_frames)
-            final_frames = final_frames.permute(1, 0, 2, 3)
+        
+        # Load dataset annotations and clips
+        if split != 'Chall':
+            self._load_annotations(path, num_views)
+        else:
+            self._load_challenge_data(path, num_views)
             
-            if num_view == 0:
+        self.length = len(self.clips)
+        print(f"--> Dataset {split}: Total actions: {self.length}; "
+              f"Number of views per action: {num_views}")
+
+    def _load_annotations(self, path: Union[str, Path], num_views: int) -> None:
+        """Load annotations and compute class distributions."""
+        # Load labels and clips
+        (self.labels_offence_severity, self.labels_action, 
+         self.distribution_offence_severity, self.distribution_action,
+         not_taking, self.number_of_actions) = label2vectormerge(path, self.split, num_views)
+        self.clips = clips2vectormerge(path, self.split, num_views, not_taking)
+        
+        # Compute class distributions and weights
+        self.distribution_offence_severity = torch.div(self.distribution_offence_severity, 
+                                                     len(self.labels_offence_severity))
+        self.distribution_action = torch.div(self.distribution_action, 
+                                           len(self.labels_action))
+        
+        self.weights_offence_severity = torch.div(1, self.distribution_offence_severity)
+        self.weights_action = torch.div(1, self.distribution_action)
+
+    def _load_challenge_data(self, path: Union[str, Path], num_views: int) -> None:
+        """Load challenge data without annotations."""
+        self.clips = clips2vectormerge(path, self.split, num_views, [])
+
+    def _process_video_frames(self, video: torch.Tensor) -> torch.Tensor:
+        """Process video frames: extract, downsample, and transform."""
+        # Extract frames between start and end
+        frames = video[self.start:self.end, :, :, :]
+        
+        # Downsample frames
+        final_frames = None
+        for j in range(len(frames)):
+            if j % self.factor < 1:
+                frame = frames[j, :, :, :].unsqueeze(0)
+                final_frames = frame if final_frames is None else torch.cat((final_frames, frame), 0)
+        
+        # Apply transformations
+        final_frames = final_frames.permute(0, 3, 1, 2)
+        if self.transform:
+            final_frames = self.transform(final_frames)
+        final_frames = self.transform_model(final_frames)
+        
+        return final_frames.permute(1, 0, 2, 3)
+
+    def _pick_view(self, num_views: int, previous_views: List[int]) -> int:
+        """Select view index based on split type."""
+        if self.split == 'Train':
+            return random.choice([i for i in range(num_views) if i not in previous_views])
+        else:
+            return len(previous_views)
+
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Union[str, int]]:
+        """Get a dataset item.
+        
+        Returns:
+            Tuple containing:
+            - Offense severity label (tensor of size 4)
+            - Action type label (tensor of size 8)
+            - Video tensor (V, C, N, H, W)
+            - Action ID
+        """
+        previous_views = []
+        videos = None
+        
+        # Process each view
+        for _ in range(len(self.clips[index])):
+            # Limit the number of views to 2 during training
+            if self.split == 'Train' and len(previous_views) == 2:
+                break
+                
+            # Select view index
+            index_view = self._pick_view(len(self.clips[index]), previous_views)
+            previous_views.append(index_view)
+            
+            # Load and process video
+            video, _, _ = read_video(self.clips[index][index_view], 
+                                   output_format="THWC", 
+                                   pts_unit="sec")
+            final_frames = self._process_video_frames(video)
+            
+            # Combine views
+            if videos is None:
                 videos = final_frames.unsqueeze(0)
             else:
-                final_frames = final_frames.unsqueeze(0)
-                videos = torch.cat((videos, final_frames), 0)
-
-        if self.num_views != 1 and self.num_views != 5:
-            videos = videos.squeeze()   
-
+                videos = torch.cat((videos, final_frames.unsqueeze(0)), 0)
+        
+        # Final tensor organization
+        if self.num_views not in [1, 5]:
+            videos = videos.squeeze()
         videos = videos.permute(0, 2, 1, 3, 4)
-
+        
+        # Return appropriate labels based on split
         if self.split != 'Chall':
-            return self.labels_offence_severity[index][0], self.labels_action[index][0], videos, self.number_of_actions[index]
-        else:
-            return -1, -1, videos, str(index)
+            return (self.labels_offence_severity[index][0],
+                   self.labels_action[index][0],
+                   videos,
+                   self.number_of_actions[index])
+        return -1, -1, videos, str(index)
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Return the total number of items in the dataset."""
         return self.length
 
+    def get_distribution(self) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Get class distributions for offense severity and action types."""
+        return self.distribution_offence_severity, self.distribution_action
+
+    def get_weights(self) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Get class weights for offense severity and action types."""
+        return self.weights_offence_severity, self.weights_action 
