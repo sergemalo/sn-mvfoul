@@ -27,6 +27,11 @@ OUTPUT_FILE="videos_less_${FRAME_THRESHOLD}_frames.txt"
 echo "List of videos with less than ${FRAME_THRESHOLD} frames:" > "$OUTPUT_FILE"
 echo "----------------------------------------" >> "$OUTPUT_FILE"
 
+# Create file to store paths of videos to delete
+TO_DELETE_FILES="videos_less_${FRAME_THRESHOLD}_frames_paths.txt"
+rm -f "$TO_DELETE_FILES"
+touch "$TO_DELETE_FILES"
+
 # Function to process each video file
 process_video() {
     local video="$1"
@@ -39,12 +44,14 @@ process_video() {
     # Check if $frames is a valid number
     if ! [[ "$frames" =~ ^[0-9]+$ ]]; then
         echo "File: $video - Could not get frame count" >> "$OUTPUT_FILE"
+        echo "$video" >> "$TO_DELETE_FILES"
         return 1
     fi
 
     # Check if number of frames is less than threshold
     if [ "$frames" -lt "$FRAME_THRESHOLD" ]; then
         echo "File: $video - Frames: $frames" >> "$OUTPUT_FILE"
+        echo "$video" >> "$TO_DELETE_FILES"
     fi
 }
 
@@ -52,6 +59,7 @@ process_video() {
 export -f process_video
 export FRAME_THRESHOLD
 export OUTPUT_FILE
+export TO_DELETE_FILES
 find "$TARGET_DIR" -type f \( -name "*.mp4" -o -name "*.avi" -o -name "*.mov" -o -name "*.mkv" \) -exec bash -c 'process_video "$0"' {} \;
 
 echo "Analysis complete. Results are in $OUTPUT_FILE"
