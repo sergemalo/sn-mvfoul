@@ -95,6 +95,10 @@ class MultiViewDataset(Dataset):
                 frame = frames[j, :, :, :].unsqueeze(0)
                 final_frames = frame if final_frames is None else torch.cat((final_frames, frame), 0)
         
+        # In case of empty final_frames, return None
+        if final_frames is None:
+            return None
+
         # Apply transformations
         final_frames = final_frames.permute(0, 3, 1, 2)
         if self.transform:
@@ -143,6 +147,10 @@ class MultiViewDataset(Dataset):
                                    pts_unit="sec")
             final_frames = self._process_video_frames(video)
 
+            # In case of empty final_frames, throw an error
+            if final_frames is None:
+                raise ValueError(f"Failed to load frames for index {index}. Available frames count: {len(video)}. Path: {self.clips[index][index_view]}")
+
             # --------------------------------------------------------------------------
             # Load and add depth channel
             if self.depth_path is not None:
@@ -156,6 +164,10 @@ class MultiViewDataset(Dataset):
                                     output_format="THWC", 
                                     pts_unit="sec")
                 depth_final_frames = self._process_video_frames(depth_video)
+
+                # In case of empty depth_final_frames, throw an error
+                if depth_final_frames is None:
+                    raise ValueError(f"Failed to load depth frames for index {index}. Available frames count: {len(depth_video)}. Path: {depth_video_path}")
 
                 # Add the first channel of depth_final_frames as a fourth channel to final_frames
                 final_frames = torch.cat((final_frames, depth_final_frames[0:1, :, :, :]), 0)
