@@ -192,3 +192,4 @@ videos_less_*.txt
 run.sh
 slurm-*.out
 slurm-*.err
+non_standard_clips.txt
