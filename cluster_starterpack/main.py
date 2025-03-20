@@ -12,6 +12,18 @@ from model import MVNetwork
 from torchvision.models.video import R3D_18_Weights, R2Plus1D_18_Weights, MViT_V2_S_Weights, Swin3D_T_Weights
 from torchvision.models.video import MC3_18_Weights, S3D_Weights
 import wandb
+import subprocess
+
+
+def get_git_commit_hash():
+    """
+    Get the current git commit hash or return "no-git" if not available.
+    """
+    try:
+        commit_hash = subprocess.check_output(['git', 'rev-parse', 'HEAD'], stderr=subprocess.DEVNULL).decode('ascii').strip()
+        return commit_hash
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return "no-git"
 
 
 def checkArguments(args):
@@ -331,6 +343,9 @@ if __name__ == '__main__':
     ## Checking if arguments are valid
     checkArguments(args)
 
+    # Get git commit hash
+    git_commit = get_git_commit_hash()
+
     # Initialize Wandb
     wandb_run = wandb.init(project="IFT6759_MVFoulR", 
                            name=args.wandb_run_name,
@@ -341,7 +356,8 @@ if __name__ == '__main__':
                                     "Max epochs": args.max_epochs,
                                     "Data augmentation": args.data_aug,
                                     "Number of views": args.num_views,
-                                    "FPS": args.fps}
+                                    "FPS": args.fps,
+                                    "Git commit": git_commit}
                             )
     
     if (args.wandb_saving_model_name != ""):
