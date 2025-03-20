@@ -185,3 +185,6 @@ VARS model/wandb
 
 # Ignore all files in the SoccerNet directory
 dataset/*
+
+# Ignore custom job runners
+run.sh
