@@ -45,7 +45,7 @@ class MultiViewDataset(Dataset):
         self.transform_model = transform_model
         self.num_views = num_views
 
-        self.factor = (end - start) / (((end - start) / 25) * fps)
+        self.factor = (end - start) / (((end - start) / 25) * fps) # for 25 frames out of a 25 fps video, we get a factor of 1.56.
 
         self.length = len(self.clips)
 
@@ -72,18 +72,27 @@ class MultiViewDataset(Dataset):
 
             index_view = num_view
 
-            if len(prev_views) == 2:
+            if len(prev_views) == 2:    # Limit to 2 views
                 continue
 
             # As we use a batch size > 1 during training, we always randomly select two views even if we have more than two views.
             # As the batch size during validation and testing is 1, we can have 2, 3 or 4 views per action.
-            cont = True
-            if self.split == 'Train':
-                while cont:
-                    aux = random.randint(0,len(self.clips[index])-1)
-                    if aux not in prev_views:
-                        cont = False
-                index_view = aux
+
+
+            # SERGE: Remove random selection of views
+            random_selection = False
+            if (random_selection):
+                cont = True
+                if self.split == 'Train':
+                    while cont:
+                        aux = random.randint(0, len(self.clips[index])-1)
+                        if aux not in prev_views:
+                            cont = False
+                    index_view = aux
+                prev_views.append(index_view)
+
+            else:
+                # This will select views 0 and 1
                 prev_views.append(index_view)
 
 
@@ -93,7 +102,7 @@ class MultiViewDataset(Dataset):
             final_frames = None
 
             for j in range(len(frames)):
-                if j%self.factor<1:
+                if j % self.factor < 1:
                     if final_frames == None:
                         final_frames = frames[j,:,:,:].unsqueeze(0)
                     else:
