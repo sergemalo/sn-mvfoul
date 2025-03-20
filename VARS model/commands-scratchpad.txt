@@ -13,6 +13,10 @@ time python main.py --path ./mvfouls-all-lr/ --max_epochs 10 --pre_model mvit_v2
 
 
 
+720p
+time python main.py --path ./mvfouls-all-720p/ --data_aug No --max_epochs 20 --pre_model swin3d_t --wandb_run_name swin_t-720p-1 --start_frame 62 --end_frame 87 --fps 16 --GPU 0 --batch_size 4
+
+time python main.py --path ./mvfouls-all-720p/ --data_aug No --max_epochs 20 --pre_model mvit_v2_s --wandb_run_name mvit_v2_s-720p-1 --start_frame 62 --end_frame 87 --fps 16 --GPU 1 --batch_size 4
 
 ssss
 
