@@ -1,0 +1,13 @@
+From suggested command:
+--start_frame 63 --end_frame 87 --fps 17
+
+87-63 = 24
+
+factor = (24) / ((24/25) *17) = 1.47
+
+US:
+--start_frame 62 --end_frame 87 --fps 16
+
+87-62 = 25
+
+factor = (25) / ((25/25) *16) = 1.56
