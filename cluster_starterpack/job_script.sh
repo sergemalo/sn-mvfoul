@@ -33,4 +33,10 @@ cp -r "$DATASET_DIR/$DATASET_NAME" "$SLURM_TMPDIR/data"
 # Launch the code
 export WANDB_API_KEY=$(grep -A2 'api.wandb.ai' ~/.netrc | grep password | awk '{print $2}') # Retrieve wandb key from the .netrc file
 wandb login $WANDB_API_KEY
-python "$MODELDIR/main.py" --max_epochs 10 --path "$SLURM_TMPDIR/data/$DATASET_NAME" --pre_model r3d_18 --data_aug No --batch_size 1 --wandb_run_name $WANDB_RUN_NAME
+python "$MODELDIR/main.py" \
+    --max_epochs 10 \
+    --path "$SLURM_TMPDIR/data/$DATASET_NAME" \
+    --pre_model r3d_18 \
+    --data_aug No \
+    --batch_size 1 \
+    --wandb_run_name $WANDB_RUN_NAME
