@@ -228,8 +228,8 @@ def main(args, wandb_run, model_artifact):
 
         if weighted_loss == 'Yes':
             print("--> Weighted loss")
-            criterion_offence_severity = nn.CrossEntropyLoss(weight=dataset_Train.getWeights()[0].cuda())
-            criterion_action = nn.CrossEntropyLoss(weight=dataset_Train.getWeights()[1].cuda())
+            criterion_offence_severity = nn.CrossEntropyLoss(weight=dataset_Train.get_weights()[0].cuda())
+            criterion_action = nn.CrossEntropyLoss(weight=dataset_Train.get_weights()[1].cuda())
             criterion = [criterion_offence_severity, criterion_action]
         else:
             print("--> NO Weighted loss")
