@@ -10,6 +10,45 @@ from config.classes import EVENT_DICTIONARY
 #                                                            #
 ##############################################################
 
+def action_has_invalid_videos(split, action_id):
+	if split == 'Train':
+		if action_id == "359" or \
+			action_id == "565" or \
+			action_id == "1520" or \
+			action_id == "338" or \
+			action_id == "238" or \
+			action_id == "1134" or \
+			action_id == "1574" or \
+			action_id == "89" or \
+			action_id == "1409" or \
+			action_id == "453" or \
+			action_id == "818" or \
+			action_id == "130" or \
+			action_id == "1465" or \
+			action_id == "591" or \
+			action_id == "442" or \
+			action_id == "773" or \
+			action_id == "508" or \
+			action_id == "213" or \
+			action_id == "359" or \
+			action_id == "1106" or \
+			action_id == "46":
+			return True
+	elif split == 'Test':
+		if action_id == "96" or \
+			action_id == "86" or \
+			action_id == "138" or \
+			action_id == "236":
+			return True
+	elif split == 'Valid':
+		if action_id == "11":
+			return True
+	elif split == 'Chall':
+		if action_id == "109" or \
+		   action_id == "110":
+			return True
+	
+	return False
 
 
 # Function to load the labels from the json file
@@ -43,6 +82,11 @@ def label2vectormerge(folder_path, split, num_views):
 		action_class = train_annotations_data['Actions'][actions]['Action class']
 		offence_class = train_annotations_data['Actions'][actions]['Offence']
 		severity_class = train_annotations_data['Actions'][actions]['Severity']
+
+		if action_has_invalid_videos(split, actions):
+			print(f"Skipping {split} action Id {actions} - contains invalid videos")
+			not_taking.append(actions)
+			continue
 
 
 		if action_class == '' or action_class == 'Dont know':
