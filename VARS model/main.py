@@ -349,7 +349,6 @@ if __name__ == '__main__':
                                     "Data augmentation": args.data_aug,
                                     "Number of views": args.num_views,
                                     "FPS": args.fps,
-                                    "Depth Path": args.depth_path,
                                     "Using Depth": args.depth_path is not None}
                             )
     
