@@ -60,7 +60,11 @@ class MVNetwork(torch.nn.Module):
             print("--> Adding channel reducer")
             self.channel_reducer = ChannelReducer(
                 in_channels=4,
-                out_channels=3
+                out_channels=3,
+                kernel_size=224,
+                padding=0,
+                stride=1,
+                bias=True
             )
         else:
             self.channel_reducer = None
