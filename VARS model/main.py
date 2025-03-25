@@ -96,9 +96,12 @@ def main(args, wandb_run, model_artifact):
         continue_training = args.continue_training
         only_evaluation = args.only_evaluation
         path_to_model_weights = args.path_to_model_weights
+        depth_path = args.depth_path
     else:
         print("ERROR: No arguments given.")
         exit()
+
+    should_reduce_channels = args.depth_path is not None
 
 
     model_saving_dir = os.path.join("models", os.path.join(model_name))
@@ -139,7 +142,7 @@ def main(args, wandb_run, model_artifact):
     if only_evaluation == 0:
         print("--> ONLY Evaluating on the test set")
         dataset_Test2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Test', num_views = 5, 
-                                         transform_model=transforms_model)
+                                         transform_model=transforms_model, depth_path=depth_path)
         
         test_loader2 = torch.utils.data.DataLoader(dataset_Test2, 
                                                    batch_size=1, shuffle=False,
@@ -148,7 +151,7 @@ def main(args, wandb_run, model_artifact):
     elif only_evaluation == 1:
         print("--> ONLY Evaluating on the challenge set")
         dataset_Chall = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Chall', num_views = 5, 
-                                         transform_model=transforms_model)
+                                         transform_model=transforms_model, depth_path=depth_path)
 
         chall_loader2 = torch.utils.data.DataLoader(dataset_Chall, 
                                                     batch_size=1, shuffle=False,
@@ -157,9 +160,9 @@ def main(args, wandb_run, model_artifact):
     elif only_evaluation == 2:
         print("--> ONLY Evaluating on the test and challenge set")
         dataset_Test2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Test', num_views = 5, 
-                                         transform_model=transforms_model)
+                                         transform_model=transforms_model, depth_path=depth_path)
         dataset_Chall = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Chall', num_views = 5, 
-                                         transform_model=transforms_model)
+                                         transform_model=transforms_model, depth_path=depth_path)
 
         test_loader2 = torch.utils.data.DataLoader(dataset_Test2,
                                                    batch_size=1, shuffle=False,
@@ -173,11 +176,12 @@ def main(args, wandb_run, model_artifact):
 
         # Create Train Validation and Test datasets
         dataset_Train = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Train',
-                                         num_views=num_views, transform=transformAug, transform_model=transforms_model)
+                                         num_views=num_views, transform=transformAug, transform_model=transforms_model,
+                                         depth_path=depth_path)
         dataset_Valid2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Valid', num_views = 5, 
-                                          transform_model=transforms_model)
+                                          transform_model=transforms_model, depth_path=depth_path)
         dataset_Test2 = MultiViewDataset(path=path, start=start_frame, end=end_frame, fps=fps, split='Test', num_views = 5, 
-                                         transform_model=transforms_model)
+                                         transform_model=transforms_model, depth_path=depth_path)
 
         # Create the dataloaders for train validation and test datasets
         train_loader = torch.utils.data.DataLoader(dataset_Train, 
@@ -193,7 +197,7 @@ def main(args, wandb_run, model_artifact):
                                                    num_workers=max_num_worker, pin_memory=True)
 
     print(f"--> Creating the model: {pre_model} with pooling: {pooling_type}")
-    model = MVNetwork(net_name=pre_model, agr_type=pooling_type).cuda()
+    model = MVNetwork(net_name=pre_model, agr_type=pooling_type, reduce_channels=should_reduce_channels).cuda()
 
     if path_to_model_weights != "":
         print("--> Loading model weights from: ", path_to_model_weights)
@@ -324,6 +328,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--only_evaluation", required=False, type=int, default=3, help="Only evaluation, 0 = on test set, 1 = on chall set, 2 = on both sets and 3 = train/valid/test")
     parser.add_argument("--path_to_model_weights", required=False, type=str, default="", help="Path to the model weights")
+    parser.add_argument("--depth_path", required=False, type=str, default=None, help="Path to the depth video dataset")
 
     parser.add_argument("--wandb_run_name", required=True, type=str, help="Wandb run name")
     parser.add_argument("--wandb_saving_model_name", required=False, type=str, default="", help="Name of the Artifact to save the checkpoints in")

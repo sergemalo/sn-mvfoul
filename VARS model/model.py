@@ -58,6 +58,7 @@ class MVNetwork(torch.nn.Module):
         )
 
         if reduce_channels:
+            print("--> Adding channel reducer")
             self.channel_reducer = ChannelReducerMLP(
                 in_channels=4,
                 out_channels=3,
