@@ -61,8 +61,8 @@ class MVNetwork(torch.nn.Module):
             self.channel_reducer = ChannelReducer(
                 in_channels=4,
                 out_channels=3,
-                kernel_size=224,
-                padding=0,
+                kernel_size=5,
+                padding=2,
                 stride=1,
                 bias=True
             )
