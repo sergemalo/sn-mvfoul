@@ -4,22 +4,45 @@ import torch.nn as nn
 class ChannelReducer(nn.Module):
     def __init__(self, 
                  in_channels: int,
-                 out_channels: int):
+                 out_channels: int,
+                 kernel_size: int = 1,
+                 stride: int = 1,
+                 padding: int = 0,
+                 dilation: int = 1,
+                 groups: int = 1,
+                 bias: bool = True,
+                 padding_mode: str = 'zeros'):
         """
         Channel reducer for multiview video format
         
         Args:
             in_channels (int): Number of input channels
             out_channels (int): Number of output channels
+            kernel_size (int): Size of the convolving kernel. Default: 1
+            stride (int): Stride of the convolution. Default: 1
+            padding (int): Zero-padding added to both sides of the input. Default: 0
+            dilation (int): Spacing between kernel elements. Default: 1
+            groups (int): Number of blocked connections from input to output channels. Default: 1
+            bias (bool): If True, adds a learnable bias to the output. Default: True
+            padding_mode (str): 'zeros', 'reflect', 'replicate' or 'circular'. Default: 'zeros'
         """
         super().__init__()
         
         self.in_channels = in_channels
         self.out_channels = out_channels
         
-        # Create a 1x1 convolution to reduce channels
-        # This is much more efficient than an MLP for this task
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        # Create a configurable convolution to reduce channels
+        self.conv = nn.Conv2d(
+            in_channels, 
+            out_channels, 
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            dilation=dilation,
+            groups=groups,
+            bias=bias,
+            padding_mode=padding_mode
+        )
     
     def forward(self, x):
         """
@@ -60,8 +83,7 @@ class ChannelReducer(nn.Module):
         # Permute to match expected output format (batch_size, views, out_channels, frames, height, width)
         result = result.permute(0, 1, 3, 2, 4, 5)
         
-        return result
-
+        return result 
 
 # Example usage
 if __name__ == "__main__":
@@ -74,17 +96,31 @@ if __name__ == "__main__":
     height = 224
     width = 224
     
-    # Create model
-    model = ChannelReducer(
+    # Basic usage with default parameters
+    model_default = ChannelReducer(
         in_channels=in_channels,
         out_channels=out_channels
+    )
+    
+    # Advanced usage with custom convolution parameters
+    model_custom = ChannelReducer(
+        in_channels=in_channels,
+        out_channels=out_channels,
+        kernel_size=3,       # Using 3x3 convolution instead of 1x1
+        padding=1,           # Add padding to maintain spatial dimensions
+        stride=1,
+        bias=False           # Disable bias
     )
     
     # Example input - Multiview video format (batch, views, channels, frames, height, width)
     x = torch.randn(batch_size, views, in_channels, frames, height, width)
     
-    # Forward pass
-    output = model(x)
+    # Forward pass with default model
+    output_default = model_default(x)
+    
+    # Forward pass with custom model
+    output_custom = model_custom(x)
     
     print(f"Input shape: {x.shape}")
-    print(f"Output shape: {output.shape}") 
+    print(f"Output shape (default model): {output_default.shape}")
+    print(f"Output shape (custom model): {output_custom.shape}") 
