@@ -188,6 +188,8 @@ class MultiViewDataset(Dataset):
         if self.num_views not in [1, 5]:
             videos = videos.squeeze()
         videos = videos.permute(0, 2, 1, 3, 4)
+
+        print(f"Final videos shape: {videos.shape}")
         
         # Return appropriate labels based on split
         if self.split != 'Chall':
