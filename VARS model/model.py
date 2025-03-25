@@ -66,8 +66,10 @@ class MVNetwork(torch.nn.Module):
                 width=398,
                 hidden_layers=[1024, 512],
             )
+        else:
+            self.channel_reducer = None
 
     def forward(self, mvimages):
-        if self.reduce_channels:
+        if self.channel_reducer:
             mvimages = self.channel_reducer(mvimages)
         return self.mvnetwork(mvimages)
