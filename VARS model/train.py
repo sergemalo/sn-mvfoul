@@ -6,6 +6,8 @@ import json
 from SoccerNet.Evaluation.MV_FoulRecognition import evaluate
 from tqdm import tqdm
 import wandb
+from torch.cuda.amp import autocast, GradScaler
+
 
 def print_results(results, dataset, wandb_run, epoch):
     
@@ -70,6 +72,9 @@ def trainer(train_loader,
 
     set_wandb_metrics(wandb_run)
 
+    scaler = torch.amp.GradScaler()
+
+
     for epoch in range(epoch_start, max_epochs+1): # [epoch_start, max_epoch]
         
         print(f"######################  Epoch {epoch}/{max_epochs} ###################### ")
@@ -77,6 +82,7 @@ def trainer(train_loader,
         print("###################### TRAINING ###################")
         pbar = tqdm(total=len(train_loader), desc="Training", position=0, leave=True)
         prediction_file, loss_action, loss_offence_severity = train(
+            scaler,
             train_loader,
             model,
             criterion,
@@ -95,6 +101,7 @@ def trainer(train_loader,
         print("###################### VALIDATION ###################")
         pbar = tqdm(total=len(val_loader2), desc="Validation", position=0, leave=True)
         prediction_file, loss_action, loss_offence_severity = train(
+            scaler,
             val_loader2,
             model,
             criterion,
@@ -131,6 +138,7 @@ def trainer(train_loader,
     print("###################### TEST ###################")
     pbar = tqdm(total=len(test_loader2), desc="Test", position=0, leave=True)
     prediction_file, loss_action, loss_offence_severity = train(
+            scaler,
             test_loader2,
             model,
             criterion,
@@ -168,7 +176,8 @@ def trainer(train_loader,
     return
 
 
-def train(dataloader,
+def train(scaler,
+          dataloader,
           model,
           criterion,
           optimizer,
@@ -212,72 +221,74 @@ def train(dataloader,
 
             # compute output
             if (train):
-                outputs_offence_severity, outputs_action, _ = model(mvclips)
-            else:
-                with torch.no_grad():
+                optimizer.zero_grad()
+
+            with torch.amp.autocast("cuda"): 
+                if (train):
                     outputs_offence_severity, outputs_action, _ = model(mvclips)
+                else:
+                    with torch.no_grad():
+                        outputs_offence_severity, outputs_action, _ = model(mvclips)
             
-            if len(action) == 1:
-                preds_sev = torch.argmax(outputs_offence_severity, 0)
-                preds_act = torch.argmax(outputs_action, 0)
+                if len(action) == 1:
+                    preds_sev = torch.argmax(outputs_offence_severity, 0)
+                    preds_act = torch.argmax(outputs_action, 0)
 
-                values = {}
-                values["Action class"] = INVERSE_EVENT_DICTIONARY["action_class"][preds_act.item()]
-                if preds_sev.item() == 0:
-                    values["Offence"] = "No offence"
-                    values["Severity"] = ""
-                elif preds_sev.item() == 1:
-                    values["Offence"] = "Offence"
-                    values["Severity"] = "1.0"
-                elif preds_sev.item() == 2:
-                    values["Offence"] = "Offence"
-                    values["Severity"] = "3.0"
-                elif preds_sev.item() == 3:
-                    values["Offence"] = "Offence"
-                    values["Severity"] = "5.0"
-                actions[action[0]] = values       
-            else:
-                preds_sev = torch.argmax(outputs_offence_severity.detach().cpu(), 1)
-                preds_act = torch.argmax(outputs_action.detach().cpu(), 1)
-
-                for i in range(len(action)):
                     values = {}
-                    values["Action class"] = INVERSE_EVENT_DICTIONARY["action_class"][preds_act[i].item()]
-                    if preds_sev[i].item() == 0:
+                    values["Action class"] = INVERSE_EVENT_DICTIONARY["action_class"][preds_act.item()]
+                    if preds_sev.item() == 0:
                         values["Offence"] = "No offence"
                         values["Severity"] = ""
-                    elif preds_sev[i].item() == 1:
+                    elif preds_sev.item() == 1:
                         values["Offence"] = "Offence"
                         values["Severity"] = "1.0"
-                    elif preds_sev[i].item() == 2:
+                    elif preds_sev.item() == 2:
                         values["Offence"] = "Offence"
                         values["Severity"] = "3.0"
-                    elif preds_sev[i].item() == 3:
+                    elif preds_sev.item() == 3:
                         values["Offence"] = "Offence"
                         values["Severity"] = "5.0"
-                    actions[action[i]] = values       
+                    actions[action[0]] = values       
+                else:
+                    preds_sev = torch.argmax(outputs_offence_severity.detach().cpu(), 1)
+                    preds_act = torch.argmax(outputs_action.detach().cpu(), 1)
 
-            
-            if len(outputs_offence_severity.size()) == 1:
-                outputs_offence_severity = outputs_offence_severity.unsqueeze(0)   
-            if len(outputs_action.size()) == 1:
-                outputs_action = outputs_action.unsqueeze(0)  
-   
-            #compute the loss
-            loss_offence_severity = criterion[0](outputs_offence_severity, targets_offence_severity)
-            loss_action = criterion[1](outputs_action, targets_action)
+                    for i in range(len(action)):
+                        values = {}
+                        values["Action class"] = INVERSE_EVENT_DICTIONARY["action_class"][preds_act[i].item()]
+                        if preds_sev[i].item() == 0:
+                            values["Offence"] = "No offence"
+                            values["Severity"] = ""
+                        elif preds_sev[i].item() == 1:
+                            values["Offence"] = "Offence"
+                            values["Severity"] = "1.0"
+                        elif preds_sev[i].item() == 2:
+                            values["Offence"] = "Offence"
+                            values["Severity"] = "3.0"
+                        elif preds_sev[i].item() == 3:
+                            values["Offence"] = "Offence"
+                            values["Severity"] = "5.0"
+                        actions[action[i]] = values       
 
-            loss = loss_offence_severity + loss_action
+                
+                if len(outputs_offence_severity.size()) == 1:
+                    outputs_offence_severity = outputs_offence_severity.unsqueeze(0)   
+                if len(outputs_action.size()) == 1:
+                    outputs_action = outputs_action.unsqueeze(0)  
+    
+                #compute the loss
+                loss_offence_severity = criterion[0](outputs_offence_severity, targets_offence_severity)
+                loss_action = criterion[1](outputs_action, targets_action)
+                loss = loss_offence_severity + loss_action
 
-            if train:
-                # compute gradient and do SGD step
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+                if train:
+                    scaler.scale(loss).backward()
+                    scaler.step(optimizer)
+                    scaler.update()                    
 
-            loss_total_action += float(loss_action)
-            loss_total_offence_severity += float(loss_offence_severity)
-            total_loss += 1
+                loss_total_action += float(loss_action)
+                loss_total_offence_severity += float(loss_offence_severity)
+                total_loss += 1
           
         gc.collect()
         torch.cuda.empty_cache()
