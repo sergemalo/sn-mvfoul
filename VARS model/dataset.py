@@ -26,7 +26,8 @@ class MultiViewDataset(Dataset):
         num_views: int,
         transform: Optional[callable] = None,
         transform_model: Optional[callable] = None,
-        depth_path: Union[str, Path] = None
+        depth_path: Union[str, Path] = None,
+        n_c_permuted: bool = True 
     ):
         """Initialize the dataset.
         
@@ -40,6 +41,7 @@ class MultiViewDataset(Dataset):
             transform: Optional transform to apply to frames
             transform_model: Model-specific transform to apply
             depth_path: Path to the depth video dataset
+            n_c_permuted: Whether the channels are permuted (see https://pytorch.org/vision/main/models/generated/torchvision.models.video.mvit_v2_s.html)
         """
         self.path = path
         self.depth_path = depth_path
@@ -49,6 +51,7 @@ class MultiViewDataset(Dataset):
         self.transform = transform
         self.transform_model = transform_model
         self.num_views = num_views
+        self.n_c_permuted = n_c_permuted
         
         # Calculate frame sampling factor
         self.factor = (end - start) / (((end - start) / 25) * fps)
@@ -171,7 +174,10 @@ class MultiViewDataset(Dataset):
                     raise ValueError(f"Failed to load depth frames for index {index}. Available frames count: {len(depth_video)}. Path: {depth_video_path}")
 
                 # Add the first channel of depth_final_frames as a fourth channel to final_frames
-                final_frames = torch.cat((final_frames, depth_final_frames[:, 0:1, :, :]), 1)
+                if self.n_c_permuted:
+                    final_frames = torch.cat((final_frames, depth_final_frames[:, 0:1, :, :]), 1)
+                else:
+                    final_frames = torch.cat((final_frames, depth_final_frames[0:1, :, :, :]), 0)
             # --------------------------------------------------------------------------
             
             # Combine views
@@ -215,6 +221,7 @@ if __name__ == "__main__":
     fps = 25
     split = "Train"
     num_views = 3
+    n_c_permuted = False
     
     # Define a simple transform (identity transform)
     def transform_model(x):
@@ -237,7 +244,8 @@ if __name__ == "__main__":
         split=split,
         num_views=num_views,
         transform=None,
-        transform_model=transform_model
+        transform_model=transform_model,
+        n_c_permuted=n_c_permuted
     )
     
     print(f"Dataset loaded successfully with {len(dataset)} items.")
