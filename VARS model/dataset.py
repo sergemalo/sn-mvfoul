@@ -176,6 +176,7 @@ class MultiViewDataset(Dataset):
 
                 # Add the first channel of depth_final_frames as a fourth channel to final_frames
                 final_frames = torch.cat((final_frames, depth_final_frames[0:1, :, :, :]), 0)
+                print(f"Final frames shape: {final_frames.shape}")
             # --------------------------------------------------------------------------
             
             # Combine views
