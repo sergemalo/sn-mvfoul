@@ -1,4 +1,3 @@
-
 import __future__
 import torch
 from mvaggregate import MVAggregate
@@ -62,9 +61,8 @@ class MVNetwork(torch.nn.Module):
             self.channel_reducer = ChannelReducerMLP(
                 in_channels=4,
                 out_channels=3,
-                height=224,
-                width=398,
                 hidden_layers=[1024, 512],
+                process_full_video=False,  # Process frame by frame for better memory usage
             )
         else:
             self.channel_reducer = None

@@ -348,7 +348,9 @@ if __name__ == '__main__':
                                     "Max epochs": args.max_epochs,
                                     "Data augmentation": args.data_aug,
                                     "Number of views": args.num_views,
-                                    "FPS": args.fps}
+                                    "FPS": args.fps,
+                                    "Depth Path": args.depth_path,
+                                    "Using Depth": args.depth_path is not None}
                             )
     
     if (args.wandb_saving_model_name != ""):

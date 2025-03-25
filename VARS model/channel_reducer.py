@@ -5,8 +5,8 @@ class ChannelReducerMLP(nn.Module):
     def __init__(self, 
                  in_channels: int,
                  out_channels: int,
-                 height: int,
-                 width: int,
+                 height: int = None,
+                 width: int = None,
                  hidden_layers: list[int] = [128, 64],
                  process_full_video: bool = False):
         """
@@ -15,8 +15,8 @@ class ChannelReducerMLP(nn.Module):
         Args:
             in_channels (int): Number of input channels
             out_channels (int): Number of output channels
-            height (int): Height of input images/video
-            width (int): Width of input images/video
+            height (int, optional): Height of input images/video. If None, will be inferred at first forward pass.
+            width (int, optional): Width of input images/video. If None, will be inferred at first forward pass.
             hidden_layers (list[int]): List of hidden layer sizes
             process_full_video (bool): If True, process entire video at once. If False, process frame by frame
         """
@@ -27,20 +27,34 @@ class ChannelReducerMLP(nn.Module):
         self.height = height
         self.width = width
         self.process_full_video = process_full_video
+        self.hidden_layers = hidden_layers
+        
+        # MLP will be built on first forward pass if height and width are None
+        self.mlp = None
+        self.initialized = False
+        
+        if height is not None and width is not None:
+            self._build_mlp(height * width * in_channels)
+            self.initialized = True
+        
+    def _build_mlp(self, input_size):
+        """Build the MLP with the specified input size"""
+        print(f"Building MLP with input size: {input_size}")
         
         # Build MLP layers
         layers = []
-        input_size = height * width * in_channels
         
         # Add hidden layers
         current_size = input_size
-        for hidden_size in hidden_layers:
+        for hidden_size in self.hidden_layers:
+            print(f"Adding layer: {current_size} -> {hidden_size}")
             layers.append(nn.Linear(current_size, hidden_size))
             layers.append(nn.ReLU())
             current_size = hidden_size
         
         # Add output layer
-        output_size = height * width * out_channels
+        output_size = self.height * self.width * self.out_channels
+        print(f"Adding output layer: {current_size} -> {output_size}")
         layers.append(nn.Linear(current_size, output_size))
         
         self.mlp = nn.Sequential(*layers)
@@ -59,38 +73,95 @@ class ChannelReducerMLP(nn.Module):
         original_shape = x.shape
         batch_size = original_shape[0]
         
+        # Initialize dimensions if not done yet
+        if not self.initialized:
+            if len(original_shape) == 5:  # Video input
+                self.height = original_shape[3]
+                self.width = original_shape[4]
+            else:  # Image input
+                self.height = original_shape[2]
+                self.width = original_shape[3]
+                
+            print(f"Initialized dimensions: height={self.height}, width={self.width}")
+            self._build_mlp(self.height * self.width * self.in_channels)
+            self.initialized = True
+        
+        print(f"Input shape: {original_shape}")
+        
         if len(original_shape) == 5:  # Video input
             if self.process_full_video:
+                print("Processing entire video at once")
                 # Process entire video at once
                 # Reshape to (batch_size, frames*channels*height*width)
-                x = x.reshape(batch_size, -1)
-                x = self.mlp(x)
+                x_flat = x.reshape(batch_size, -1)
+                print(f"Flattened shape: {x_flat.shape}")
+                frames = original_shape[1]
+                
+                # Check if the matrix sizes match
+                expected_size = frames * self.in_channels * self.height * self.width
+                actual_size = x_flat.shape[1]
+                if expected_size != actual_size:
+                    print(f"WARNING: Expected flattened size {expected_size} but got {actual_size}")
+                    
+                x_out = self.mlp(x_flat)
+                print(f"MLP output shape: {x_out.shape}")
+                
                 # Reshape back to (batch_size, frames, out_channels, height, width)
-                return x.reshape(batch_size, original_shape[1], self.out_channels, self.height, self.width)
+                return x_out.reshape(batch_size, frames, self.out_channels, self.height, self.width)
             else:
+                print("Processing frame by frame")
                 # Process frame by frame
                 frames = original_shape[1]
                 output_frames = []
                 
                 for frame_idx in range(frames):
                     frame = x[:, frame_idx]  # (batch_size, channels, height, width)
+                    print(f"Frame {frame_idx} shape: {frame.shape}")
+                    
+                    # Check if channels match what we expect
+                    if frame.shape[1] != self.in_channels:
+                        print(f"WARNING: Expected {self.in_channels} channels but got {frame.shape[1]}")
+                    
                     # Reshape to (batch_size, channels*height*width)
-                    frame = frame.reshape(batch_size, -1)
+                    frame_flat = frame.reshape(batch_size, -1)
+                    print(f"Flattened frame shape: {frame_flat.shape}")
+                    
+                    # Check if the matrix sizes match
+                    expected_size = self.in_channels * self.height * self.width
+                    actual_size = frame_flat.shape[1]
+                    if expected_size != actual_size:
+                        print(f"WARNING: Expected flattened frame size {expected_size} but got {actual_size}")
+                    
                     # Process through MLP
-                    processed_frame = self.mlp(frame)
+                    processed_frame = self.mlp(frame_flat)
+                    print(f"Processed frame shape: {processed_frame.shape}")
+                    
                     # Reshape to (batch_size, out_channels, height, width)
                     processed_frame = processed_frame.reshape(batch_size, self.out_channels, self.height, self.width)
                     output_frames.append(processed_frame)
                 
                 # Stack frames back together
-                return torch.stack(output_frames, dim=1)
+                stacked = torch.stack(output_frames, dim=1)
+                print(f"Final output shape: {stacked.shape}")
+                return stacked
         
         else:  # Single frame input
+            print("Processing single frame")
             # Reshape to (batch_size, channels*height*width)
-            x = x.reshape(batch_size, -1)
-            x = self.mlp(x)
+            x_flat = x.reshape(batch_size, -1)
+            print(f"Flattened shape: {x_flat.shape}")
+            
+            # Check if the matrix sizes match
+            expected_size = self.in_channels * self.height * self.width
+            actual_size = x_flat.shape[1]
+            if expected_size != actual_size:
+                print(f"WARNING: Expected flattened size {expected_size} but got {actual_size}")
+            
+            x_out = self.mlp(x_flat)
+            print(f"MLP output shape: {x_out.shape}")
+            
             # Reshape back to (batch_size, out_channels, height, width)
-            return x.reshape(batch_size, self.out_channels, self.height, self.width)
+            return x_out.reshape(batch_size, self.out_channels, self.height, self.width)
 
 
 # Example usage and training code
@@ -156,5 +227,6 @@ if __name__ == "__main__":
     
     # Forward pass
     output = model(x)
+    
     print(f"Input shape: {x.shape}")
     print(f"Output shape: {output.shape}") 

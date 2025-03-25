@@ -110,7 +110,10 @@ class MultiViewDataset(Dataset):
     
     def _get_depth_video_path(self, video_path: str) -> str:
         """Replace self.path with self.depth_path in video_path."""
-        return video_path.replace(self.path, self.depth_path)
+        depth_path = video_path.replace(self.path, self.depth_path)
+        print(f"Original video path: {video_path}")
+        print(f"Depth video path: {depth_path}")
+        return depth_path
 
     def _pick_view(self, num_views: int, previous_views: List[int]) -> int:
         """Select view index based on split type."""
@@ -155,6 +158,7 @@ class MultiViewDataset(Dataset):
             # --------------------------------------------------------------------------
             # Load and add depth channel
             if self.depth_path is not None:
+                print(f"Adding depth channel from {self.depth_path}")
                 depth_video_path = self._get_depth_video_path(self.clips[index][index_view])
                 # Check if depth video path exists
                 if not os.path.exists(depth_video_path):
