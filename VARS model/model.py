@@ -2,6 +2,7 @@
 import __future__
 import torch
 from mvaggregate import MVAggregate
+from channel_reducer import ChannelReducerMLP
 from torchvision.models.video import r3d_18, R3D_18_Weights
 from torchvision.models.video import r2plus1d_18, R2Plus1D_18_Weights
 from torchvision.models.video import mvit_v2_s, MViT_V2_S_Weights
@@ -14,12 +15,11 @@ from torchvision.models.video import s3d, S3D_Weights
 
 class MVNetwork(torch.nn.Module):
 
-    def __init__(self, net_name='r2plus1d_18', agr_type='max'):
+    def __init__(self, net_name='r2plus1d_18', agr_type='max', reduce_channels=False):
         super().__init__()
 
         self.net_name = net_name
         self.agr_type = agr_type
-        
         self.feat_dim = 512
 
         if net_name == "r3d_18":                            # ResNet
@@ -57,5 +57,16 @@ class MVNetwork(torch.nn.Module):
             feat_dim=self.feat_dim, 
         )
 
+        if reduce_channels:
+            self.channel_reducer = ChannelReducerMLP(
+                in_channels=4,
+                out_channels=3,
+                height=224,
+                width=398,
+                hidden_layers=[1024, 512],
+            )
+
     def forward(self, mvimages):
+        if self.reduce_channels:
+            mvimages = self.channel_reducer(mvimages)
         return self.mvnetwork(mvimages)
