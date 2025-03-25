@@ -1,6 +1,7 @@
 from torch.utils.data import Dataset
 import torch
 import random
+import os
 from data_loader import label2vectormerge, clips2vectormerge
 from torchvision.io.video import read_video
 from typing import Optional, Tuple, List, Union
@@ -205,7 +206,6 @@ class MultiViewDataset(Dataset):
         return self.weights_offence_severity, self.weights_action 
 
 if __name__ == "__main__":
-    import os
 
     # Define dataset parameters
     dataset_path = "mvfouls-sub2-lr/videos"
