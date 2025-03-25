@@ -67,13 +67,9 @@ class MVNetwork(torch.nn.Module):
 
     def forward(self, mvimages):
         # Expect input shape: (batch, views, channels, frames, height, width)
-        print(f"MVNetwork received input shape: {mvimages.shape}")
         
         if self.channel_reducer:
-            print(f"Applying channel reduction from {mvimages.shape[2]} to {self.channel_reducer.out_channels} channels")
             mvimages = self.channel_reducer(mvimages)
-            print(f"After channel reduction: {mvimages.shape}")
-            
             # Verify the tensor has the expected 6D shape after channel reduction
             if len(mvimages.shape) != 6:
                 raise ValueError(f"Expected 6D tensor after channel reduction, but got shape {mvimages.shape}")

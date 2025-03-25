@@ -20,8 +20,6 @@ class ChannelReducer(nn.Module):
         # Create a 1x1 convolution to reduce channels
         # This is much more efficient than an MLP for this task
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
-        
-        print(f"--> Created channel reducer from {in_channels} to {out_channels} channels")
     
     def forward(self, x):
         """
@@ -34,8 +32,8 @@ class ChannelReducer(nn.Module):
             torch.Tensor: Output tensor with reduced channels (batch_size, views, out_channels, frames, height, width)
         """
         original_shape = x.shape
-        print(f"Channel reducer input shape: {original_shape}")
-        
+
+        # ------------------------------------------------------------
         # Check if we have the expected 6D tensor
         if len(original_shape) != 6:
             raise ValueError(f"Expected 6D tensor with shape (batch, views, channels, frames, height, width), but got shape {original_shape}")
@@ -47,6 +45,7 @@ class ChannelReducer(nn.Module):
             if channels < self.in_channels:
                 print(f"ERROR: Input has fewer channels ({channels}) than expected ({self.in_channels})")
                 raise ValueError(f"Input has fewer channels ({channels}) than expected ({self.in_channels})")
+        # ------------------------------------------------------------
         
         # Reshape to process all views and frames at once using batched operations
         # Reshape to (batch_size * num_views * frames, channels, height, width)
@@ -61,7 +60,6 @@ class ChannelReducer(nn.Module):
         # Permute to match expected output format (batch_size, views, out_channels, frames, height, width)
         result = result.permute(0, 1, 3, 2, 4, 5)
         
-        print(f"Channel reducer output shape: {result.shape}")
         return result
 
 

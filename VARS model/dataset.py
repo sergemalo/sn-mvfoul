@@ -111,8 +111,6 @@ class MultiViewDataset(Dataset):
     def _get_depth_video_path(self, video_path: str) -> str:
         """Replace self.path with self.depth_path in video_path."""
         depth_path = video_path.replace(self.path, self.depth_path)
-        print(f"Original video path: {video_path}")
-        print(f"Depth video path: {depth_path}")
         return depth_path
 
     def _pick_view(self, num_views: int, previous_views: List[int]) -> int:
@@ -158,12 +156,10 @@ class MultiViewDataset(Dataset):
             # --------------------------------------------------------------------------
             # Load and add depth channel
             if self.depth_path is not None:
-                print(f"Adding depth channel from {self.depth_path}")
                 depth_video_path = self._get_depth_video_path(self.clips[index][index_view])
                 # Check if depth video path exists
                 if not os.path.exists(depth_video_path):
-                    print(f"Error: Depth video path '{depth_video_path}' does not exist.")
-                    exit(1)
+                    raise ValueError(f"Error: Depth video path '{depth_video_path}' does not exist.")
 
                 depth_video, _, _ = read_video(depth_video_path, 
                                     output_format="THWC", 
@@ -175,10 +171,7 @@ class MultiViewDataset(Dataset):
                     raise ValueError(f"Failed to load depth frames for index {index}. Available frames count: {len(depth_video)}. Path: {depth_video_path}")
 
                 # Add the first channel of depth_final_frames as a fourth channel to final_frames
-                print(f"Depth final frames shape: {depth_final_frames.shape}")
-                print(f"Final frames shape before concatenation: {final_frames.shape}")
                 final_frames = torch.cat((final_frames, depth_final_frames[:, 0:1, :, :]), 1)
-                print(f"Final frames shape after concatenation: {final_frames.shape}")
             # --------------------------------------------------------------------------
             
             # Combine views
@@ -192,8 +185,6 @@ class MultiViewDataset(Dataset):
             videos = videos.squeeze()
         videos = videos.permute(0, 2, 1, 3, 4)
 
-        print(f"Final videos shape: {videos.shape}")
-        
         # Return appropriate labels based on split
         if self.split != 'Chall':
             return (self.labels_offence_severity[index][0],
