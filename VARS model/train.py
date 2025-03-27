@@ -198,6 +198,7 @@ def train(scaler,
     loss_total_action = 0
     loss_total_offence_severity = 0
     total_loss = 0
+    grad_acc_steps = 4
 
     if not os.path.isdir(model_name):
         os.mkdir(model_name) 
@@ -210,8 +211,9 @@ def train(scaler,
     actions = {}
 
     if True:
-        for targets_offence_severity, targets_action, mvclips, action in dataloader:
+        for datapoint_i, (targets_offence_severity, targets_action, mvclips, action) in enumerate(dataloader):
 
+            print("Datapoint:", datapoint_i)
             targets_offence_severity = targets_offence_severity.cuda()
             targets_action = targets_action.cuda()
             mvclips = mvclips.cuda().float()
@@ -220,8 +222,8 @@ def train(scaler,
                 pbar.update()
 
             # compute output
-            if (train):
-                optimizer.zero_grad()
+            #if (train):
+            #    optimizer.zero_grad()
 
             with torch.amp.autocast("cuda"): 
                 if (train):
@@ -283,8 +285,12 @@ def train(scaler,
 
                 if train:
                     scaler.scale(loss).backward()
+
+                if train and ((datapoint_i + 1) % grad_acc_steps == 0):
+                    print("Zero grad")
                     scaler.step(optimizer)
-                    scaler.update()                    
+                    scaler.update()      
+                    optimizer.zero_grad()              
 
                 loss_total_action += float(loss_action)
                 loss_total_offence_severity += float(loss_offence_severity)
