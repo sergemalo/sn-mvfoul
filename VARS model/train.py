@@ -7,7 +7,7 @@ from SoccerNet.Evaluation.MV_FoulRecognition import evaluate
 from tqdm import tqdm
 import wandb
 
-def print_results(results, dataset, wandb_run, epoch):
+def print_results(results, dataset, wandb_run, epoch, channel_importance = None):
     
     print("RESULTS: ")
     print("  Action class accuracy:      {:.3f} %".format(results["accuracy_action"]))
@@ -31,11 +31,19 @@ def print_results(results, dataset, wandb_run, epoch):
                     f"{dataset}_BA_action": round(results["balanced_accuracy_action"], 3),
                     f"{dataset}_BA_offense_severity": round(results["accuracy_offence_severity"], 3)}
                     )
+        
+        if (dataset == "Train" and channel_importance is not None):
+            wandb_run.log({"Epoch": epoch, 
+                    "Train_channel_0_importance": round(channel_importance[0], 3), 
+                    "Train_channel_1_importance": round(channel_importance[1], 3),
+                    "Train_channel_2_importance": round(channel_importance[2], 3),
+                    "Train_channel_3_importance": round(channel_importance[3], 3),
+                    })
 
     return
 
 
-def set_wandb_metrics(wandb_run):
+def set_wandb_metrics(wandb_run, define_channel_importance = False):
 
     wandb_run.define_metric(name="Epoch", hidden=True) # Don't plot the Epoch metric
 
@@ -50,6 +58,22 @@ def set_wandb_metrics(wandb_run):
 
     wandb_run.define_metric(name="Train_BA_offense_severity", summary="max", step_metric="Epoch")
     wandb_run.define_metric(name="Valid_BA_offense_severity", summary="max", step_metric="Epoch")
+
+    if define_channel_importance:
+        wandb_run.define_metric(name="Train_channel_0_importance", summary="max", step_metric="Epoch")
+        wandb_run.define_metric(name="Train_channel_1_importance", summary="max", step_metric="Epoch")
+        wandb_run.define_metric(name="Train_channel_2_importance", summary="max", step_metric="Epoch")
+        wandb_run.define_metric(name="Train_channel_3_importance", summary="max", step_metric="Epoch")
+
+def get_channel_importance(model):
+    if has_channel_reducer(model):
+        values = model.channel_reducer.get_channel_importance()
+        return values['relative_importance']
+    else:
+        return None
+    
+def has_channel_reducer(model):
+    return hasattr(model, 'channel_reducer')
 
 def trainer(train_loader,
             val_loader2,
@@ -68,7 +92,7 @@ def trainer(train_loader,
             ):
     
 
-    set_wandb_metrics(wandb_run)
+    set_wandb_metrics(wandb_run, define_channel_importance = has_channel_reducer(model))
 
     for epoch in range(epoch_start, max_epochs+1): # [epoch_start, max_epoch]
         
@@ -90,7 +114,7 @@ def trainer(train_loader,
         pbar.close()
 
         results_train = evaluate(os.path.join(path_dataset, "Train", "annotations.json"), prediction_file)
-        print_results(results_train, "Train", wandb_run, epoch)
+        print_results(results_train, "Train", wandb_run, epoch, channel_importance = get_channel_importance(model))
 
         print("###################### VALIDATION ###################")
         pbar = tqdm(total=len(val_loader2), desc="Validation", position=0, leave=True)
