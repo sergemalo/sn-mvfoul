@@ -34,10 +34,10 @@ def print_results(results, dataset, wandb_run, epoch, channel_importance = None)
         
         if (dataset == "Train" and channel_importance is not None):
             wandb_run.log({"Epoch": epoch, 
-                    "Train_channel_0_importance": round(channel_importance[0], 3), 
-                    "Train_channel_1_importance": round(channel_importance[1], 3),
-                    "Train_channel_2_importance": round(channel_importance[2], 3),
-                    "Train_channel_3_importance": round(channel_importance[3], 3),
+                    "Train_channel_0_importance": round(float(channel_importance[0]), 3), 
+                    "Train_channel_1_importance": round(float(channel_importance[1]), 3),
+                    "Train_channel_2_importance": round(float(channel_importance[2]), 3),
+                    "Train_channel_3_importance": round(float(channel_importance[3]), 3),
                     })
 
     return
