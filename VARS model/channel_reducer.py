@@ -85,6 +85,36 @@ class ChannelReducer(nn.Module):
         
         return result 
 
+    def get_channel_importance(self):
+        """
+        Analyze the importance of each input channel in the output.
+        
+        Returns:
+            dict: Dictionary containing:
+                - 'absolute_importance': Tensor of shape (in_channels,) showing absolute importance
+                - 'relative_importance': Tensor of shape (in_channels,) showing relative importance (sums to 1)
+                - 'per_output_channel': Tensor of shape (out_channels, in_channels) showing importance per output channel
+        """
+        # Get the convolution weights
+        weights = self.conv.weight.data
+        
+        # Calculate absolute importance for each input channel
+        # Sum across output channels and spatial dimensions
+        absolute_importance = torch.sum(torch.abs(weights), dim=(0, 2, 3))
+        
+        # Calculate relative importance (normalized to sum to 1)
+        relative_importance = absolute_importance / torch.sum(absolute_importance)
+        
+        # Calculate importance per output channel
+        # Sum across spatial dimensions only
+        per_output_channel = torch.sum(torch.abs(weights), dim=(2, 3))
+        
+        return {
+            'absolute_importance': absolute_importance,
+            'relative_importance': relative_importance,
+            'per_output_channel': per_output_channel
+        }
+
 # Example usage
 if __name__ == "__main__":
     # Example parameters
@@ -123,4 +153,11 @@ if __name__ == "__main__":
     
     print(f"Input shape: {x.shape}")
     print(f"Output shape (default model): {output_default.shape}")
-    print(f"Output shape (custom model): {output_custom.shape}") 
+    print(f"Output shape (custom model): {output_custom.shape}")
+    
+    # Analyze channel importance
+    importance = model_default.get_channel_importance()
+    print("\nChannel Importance Analysis:")
+    print(f"Absolute importance: {importance['absolute_importance']}")
+    print(f"Relative importance: {importance['relative_importance']}")
+    print(f"Per output channel importance:\n{importance['per_output_channel']}") 
