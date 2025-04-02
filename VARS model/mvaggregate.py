@@ -26,30 +26,28 @@ class WeightedAggregate(nn.Module):
         ##################### VIEW ATTENTION #####################
 
         # Transform output embeddings
-        aux = torch.matmul(aux, self.attention_weights) # Dimension (B, V, E)
+        transformed_emb = torch.matmul(aux, self.attention_weights) # Dimension (B, V, E)
 
-        # Compute dot product (similarity, "attention weights") between every transformed embedding
-        aux_t = aux.permute(0, 2, 1) # Dimension (B, E, V)
-        prod = torch.bmm(aux, aux_t) # Batch matrix-matrix product, Dimension (B, V, V)
-        relu_res = self.relu(prod)   # Ensures non-negative "attention weights", Dimension (B, V, V)
+        # Compute view similarity (dot product of the transformed embeddings)
+        transformed_emb_t = transformed_emb.permute(0, 2, 1) # Dimension (B, E, V)
+        similarity_matrix = torch.bmm(transformed_emb, transformed_emb_t) # Batch matrix-matrix product, Dimension (B, V, V)
+        similarity_matrix_relu = self.relu(similarity_matrix)   # Ensures non-negative "attention weights", Dimension (B, V, V)
         
-        # Divide "attention weights" by sum across batch
-        aux_sum = torch.sum(torch.reshape(relu_res, (B, V*V)).T, dim=0).unsqueeze(0) # Compute attention weights sum across batch                           
-        final_attention_weights = torch.div(torch.reshape(relu_res, (B, V*V)).T, aux_sum.squeeze(0)) # Divide each element by batch sum
-        final_attention_weights = final_attention_weights.T
-        final_attention_weights = torch.reshape(final_attention_weights, (B, V, V)) # Dimension (B, V, V)
-
-        # Sum up all attention weights for a view
-        final_attention_weights = torch.sum(final_attention_weights, dim=1) # Dimension (B, V)
+        # Normalize the similarities (divide each element by sum across batch)
+        similarity_sum_batch = torch.sum(torch.reshape(similarity_matrix_relu, (B, V*V)).T, dim=0).unsqueeze(0) # Compute attention weights sum across batch                           
+        normalized_similarity = torch.div(torch.reshape(similarity_matrix_relu, (B, V*V)).T, similarity_sum_batch.squeeze(0)) # Divide each element by batch sum
+        normalized_similarity = normalized_similarity.T
+        normalized_similarity = torch.reshape(normalized_similarity, (B, V, V)) # Dimension (B, V, V)
+        normalized_similarity = torch.sum(normalized_similarity, dim=1) # Dimension (B, V)
 
         # Scale the embeddings by the attention weights
-        output = torch.mul(aux.squeeze(), final_attention_weights.unsqueeze(-1))    # aux.squeeze() (B, V, E), 
-                                                                                    # final_attention_weights.unsqueeze(-1) (B, V, 1)
-                                                                                    # element-wise multiplication
+        output = torch.mul(transformed_emb.squeeze(), normalized_similarity.unsqueeze(-1))      # transformed_emb.squeeze() (B, V, E), 
+                                                                                                # normalized_similarity.unsqueeze(-1) (B, V, 1)
+                                                                                                # element-wise multiplication
 
         # Aggregate over the views by summing the embeddings
         output = torch.sum(output, 1) # Dimension (B, E)
-        return output.squeeze(), final_attention_weights
+        return output.squeeze(), normalized_similarity
 
 
 class ViewMaxAggregate(nn.Module):
@@ -105,7 +103,7 @@ class MVAggregate(nn.Module):
         elif self.agr_type == "mean":
             self.aggregation_model = ViewAvgAggregate(model=model)
         else:
-            self.aggregation_model = WeightedAggregate(model=model)
+            self.aggregation_model = WeightedAggregate(model=model, feat_dim=feat_dim)
 
     def forward(self, mvimages):
 
