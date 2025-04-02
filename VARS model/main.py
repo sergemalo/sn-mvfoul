@@ -70,6 +70,18 @@ def checkArguments(args):
         print("Possible arguments are: 0, 1, 2, 3")
         exit()
 
+def parse_int_list(s):
+    return list(map(int, s.split(',')))
+
+def setupGPU(gpu_list):
+    print("--> Setup GPUs")
+    print("--> Number of GPUs seen by CUDA: ", torch.cuda.device_count())
+    print(f"--> GPUs requested: {str(gpu_list)}")
+
+    #os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    #os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_list)
+
+
 
 def main(args, wandb_run, model_artifact):
 
@@ -193,7 +205,12 @@ def main(args, wandb_run, model_artifact):
                                                    num_workers=max_num_worker, pin_memory=True)
 
     print(f"--> Creating the model: {pre_model} with pooling: {pooling_type}")
-    model = MVNetwork(net_name=pre_model, agr_type=pooling_type).cuda()
+    #model = MVNetwork(net_name=pre_model, agr_type=pooling_type).cuda()
+    model = MVNetwork(net_name=pre_model, agr_type=pooling_type)
+    if len(args.GPU) > 1:
+        print(f"--> Using {len(args.GPU)} GPUs: {str(args.GPU)}")
+        model = torch.nn.DataParallel(model)
+    model = model.cuda()  # sends it to cuda:0 and syncs with other devices
 
     if path_to_model_weights != "":
         print("--> Loading model weights from: ", path_to_model_weights)
@@ -306,7 +323,7 @@ if __name__ == '__main__':
     parser.add_argument('--model_name',   required=False, type=str,   default="VARS",     help='named of the model to save' )
     parser.add_argument('--batch_size', required=False, type=int,   default=2,     help='Batch size' )
     parser.add_argument('--LR',       required=False, type=float,   default=1e-04, help='Learning Rate' )
-    parser.add_argument('--GPU',        required=False, type=int,   default=-1,     help='ID of the GPU to use' )
+    parser.add_argument('--GPU',        required=False, type=parse_int_list,   default=[0],     help='ID(s) of the GPU to use, comma separated' )
     parser.add_argument('--max_num_worker',   required=False, type=int,   default=1, help='number of worker to load data')
     parser.add_argument('--loglevel',   required=False, type=str,   default='INFO', help='logging level')
     parser.add_argument("--continue_training", required=False, action='store_true', help="Continue training")
@@ -352,12 +369,7 @@ if __name__ == '__main__':
     else:
         model_artifact = None
 
-
-    # Setup the GPU
-    if args.GPU >= 0:
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(args.GPU)
-
+    setupGPU(args.GPU)
 
     # Start the main training function
     start=time.time()
