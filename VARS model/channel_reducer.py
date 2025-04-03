@@ -87,32 +87,54 @@ class ChannelReducer(nn.Module):
 
     def get_channel_importance(self):
         """
-        Analyze the importance of each input channel in the output.
+        Analyze the importance of each input channel in the output based on gradient magnitude.
+        This method should be called after a backward pass has occurred.
         
         Returns:
             dict: Dictionary containing:
                 - 'absolute_importance': Tensor of shape (in_channels,) showing absolute importance
                 - 'relative_importance': Tensor of shape (in_channels,) showing relative importance (sums to 1)
                 - 'per_output_channel': Tensor of shape (out_channels, in_channels) showing importance per output channel
+                - 'no_grad_available': Boolean indicating if gradients were available
         """
-        # Get the convolution weights
-        weights = self.conv.weight.data
+        # Check if gradients are available
+        if self.conv.weight.grad is None:
+            print("WARNING: No gradients available. Run backward pass before calling this method.")
+            # Return zeros with appropriate shapes
+            absolute_importance = torch.zeros(self.in_channels)
+            relative_importance = torch.ones(self.in_channels) / self.in_channels
+            per_output_channel = torch.zeros(self.out_channels, self.in_channels)
+            return {
+                'absolute_importance': absolute_importance,
+                'relative_importance': relative_importance,
+                'per_output_channel': per_output_channel,
+                'no_grad_available': True
+            }
         
-        # Calculate absolute importance for each input channel
+        # Get the gradient of the convolution weights
+        grad = self.conv.weight.grad.clone().detach()
+        
+        # Calculate absolute importance for each input channel based on gradient magnitude
         # Sum across output channels and spatial dimensions
-        absolute_importance = torch.sum(torch.abs(weights), dim=(0, 2, 3))
+        absolute_importance = torch.sum(torch.abs(grad), dim=(0, 2, 3))
         
         # Calculate relative importance (normalized to sum to 1)
-        relative_importance = absolute_importance / torch.sum(absolute_importance)
+        # Handle case where all gradients might be zero
+        sum_importance = torch.sum(absolute_importance)
+        if sum_importance > 0:
+            relative_importance = absolute_importance / sum_importance
+        else:
+            relative_importance = torch.ones_like(absolute_importance) / len(absolute_importance)
         
         # Calculate importance per output channel
         # Sum across spatial dimensions only
-        per_output_channel = torch.sum(torch.abs(weights), dim=(2, 3))
+        per_output_channel = torch.sum(torch.abs(grad), dim=(2, 3))
         
         return {
             'absolute_importance': absolute_importance,
             'relative_importance': relative_importance,
-            'per_output_channel': per_output_channel
+            'per_output_channel': per_output_channel,
+            'no_grad_available': False
         }
 
 # Example usage
