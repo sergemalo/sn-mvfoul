@@ -1,4 +1,5 @@
 import os
+import random
 import time
 import numpy as np
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
@@ -96,6 +97,7 @@ def main(args, wandb_run, model_artifact):
         continue_training = args.continue_training
         only_evaluation = args.only_evaluation
         path_to_model_weights = args.path_to_model_weights
+        seed = args.seed
         depth_path = args.depth_path
     else:
         print("ERROR: No arguments given.")
@@ -107,7 +109,15 @@ def main(args, wandb_run, model_artifact):
     model_saving_dir = os.path.join("models", os.path.join(model_name))
     os.makedirs(model_saving_dir, exist_ok=True)
 
-
+    # -----------------------------------------------------
+    # Set the seed for reproducibility
+    print(f"Setting seed to {seed}")
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+    # -----------------------------------------------------
 
     # Initialize the data augmentation, only used for the training data
     # Apply random transformations to improve generalization
@@ -333,6 +343,8 @@ if __name__ == '__main__':
     parser.add_argument("--wandb_run_name", required=True, type=str, help="Wandb run name")
     parser.add_argument("--wandb_saving_model_name", required=False, type=str, default="", help="Name of the Artifact to save the checkpoints in")
 
+    parser.add_argument("--seed", required=False, type=int, default=42, help="Seed")
+
     args = parser.parse_args()
 
     ## Checking if arguments are valid
@@ -349,6 +361,7 @@ if __name__ == '__main__':
                                     "Data augmentation": args.data_aug,
                                     "Number of views": args.num_views,
                                     "FPS": args.fps,
+                                    "Seed": args.seed,
                                     "Using Depth": args.depth_path is not None}
                             )
     
