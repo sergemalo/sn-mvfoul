@@ -186,7 +186,12 @@ VARS model/wandb
 # Ignore all files in the SoccerNet directory
 dataset/*
 
+# Scripts output
+videos_less_*.txt
 # Ignore custom job runners and their outputs
 run.sh
 slurm-*.out
 slurm-*.err
+non_standard_clips.txt
+missing_videos.txt
+rsync_output.tmp
