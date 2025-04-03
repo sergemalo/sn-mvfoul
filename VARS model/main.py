@@ -14,6 +14,20 @@ from torchvision.models.video import R3D_18_Weights, R2Plus1D_18_Weights, MViT_V
 from torchvision.models.video import MC3_18_Weights, S3D_Weights
 import wandb
 
+def seed_experiment(seed):
+    """Seed the pseudorandom number generator, for repeatability.
+
+    Args:
+        seed (int): random seed
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
 
 def checkArguments(args):
 
@@ -106,15 +120,9 @@ def main(args, wandb_run, model_artifact):
     model_saving_dir = os.path.join("models", os.path.join(model_name))
     os.makedirs(model_saving_dir, exist_ok=True)
 
-    # -----------------------------------------------------
     # Set the seed for reproducibility
     print(f"Setting seed to {seed}")
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    random.seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-    # -----------------------------------------------------
+    seed_experiment(seed)
 
     # Initialize the data augmentation, only used for the training data
     # Apply random transformations to improve generalization
