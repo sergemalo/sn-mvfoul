@@ -52,6 +52,8 @@ class MultiViewDataset(Dataset):
         self.transform_model = transform_model
         self.num_views = num_views
         self.n_c_permuted = n_c_permuted
+
+        self.random_pick_for_training = False
         
         # Calculate frame sampling factor
         self.factor = (end - start) / (((end - start) / 25) * fps)
@@ -118,7 +120,7 @@ class MultiViewDataset(Dataset):
 
     def _pick_view(self, num_views: int, previous_views: List[int]) -> int:
         """Select view index based on split type."""
-        if self.split == 'Train':
+        if self.random_pick_for_training and self.split == 'Train':
             return random.choice([i for i in range(num_views) if i not in previous_views])
         else:
             return len(previous_views)
