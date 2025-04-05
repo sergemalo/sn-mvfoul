@@ -86,6 +86,27 @@ def checkArguments(args):
         exit()
 
 
+def get_channel_reducer_config(args):
+    if args.depth_path is not None:
+
+        activation = args.channel_reducer_activation
+        kernel_size = args.channel_reducer_kernel_size
+        bias = args.channel_reducer_bias
+
+        # Compute padding so that the output shape is the same as the input shape
+        padding = (kernel_size - 1) // 2
+
+        return {
+            "in_channels": 4,
+            "out_channels": 3,
+            "kernel_size": kernel_size,
+            "padding": padding,
+            "bias": bias,
+            "activation": activation
+        }
+    else:
+        return None
+
 def main(args, wandb_run, model_artifact):
 
     # Retrieve the script argument values
@@ -116,8 +137,6 @@ def main(args, wandb_run, model_artifact):
     else:
         print("ERROR: No arguments given.")
         exit()
-
-    should_reduce_channels = args.depth_path is not None
 
 
     model_saving_dir = os.path.join("models", os.path.join(model_name))
@@ -215,7 +234,11 @@ def main(args, wandb_run, model_artifact):
                                                    num_workers=max_num_worker, pin_memory=True)
 
     print(f"--> Creating the model: {pre_model} with pooling: {pooling_type}")
-    model = MVNetwork(net_name=pre_model, agr_type=pooling_type, reduce_channels=should_reduce_channels).cuda()
+    model = MVNetwork(
+        net_name=pre_model, 
+        agr_type=pooling_type, 
+        channel_reducer_config=get_channel_reducer_config(args)
+    ).cuda()
 
     if path_to_model_weights != "":
         print("--> Loading model weights from: ", path_to_model_weights)
@@ -348,6 +371,10 @@ if __name__ == '__main__':
     parser.add_argument("--path_to_model_weights", required=False, type=str, default="", help="Path to the model weights")
     parser.add_argument("--depth_path", required=False, type=str, default=None, help="Path to the depth video dataset")
 
+    parser.add_argument("--channel_reducer_activation", required=False, type=str, default=None, help="Channel reducer activation")
+    parser.add_argument("--channel_reducer_kernel_size", required=False, type=int, default=1, help="Channel reducer kernel size (1 to 9)")
+    parser.add_argument("--channel_reducer_bias", required=False, type=bool, default=True, help="Channel reducer bias")
+
     parser.add_argument("--wandb_run_name", required=True, type=str, help="Wandb run name")
     parser.add_argument("--wandb_saving_model_name", required=False, type=str, default="", help="Name of the Artifact to save the checkpoints in")
 
@@ -370,7 +397,11 @@ if __name__ == '__main__':
                                     "Number of views": args.num_views,
                                     "FPS": args.fps,
                                     "Seed": args.seed,
-                                    "Using Depth": args.depth_path is not None}
+                                    "Using Depth": args.depth_path is not None,
+                                    "Channel reducer activation": args.channel_reducer_activation,
+                                    "Channel reducer kernel size": args.channel_reducer_kernel_size,
+                                    "Channel reducer bias": args.channel_reducer_bias
+                                    }
                             )
     
     if (args.wandb_saving_model_name != ""):

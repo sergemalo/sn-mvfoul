@@ -14,7 +14,12 @@ from torchvision.models.video import s3d, S3D_Weights
 
 class MVNetwork(torch.nn.Module):
 
-    def __init__(self, net_name='r2plus1d_18', agr_type='max', reduce_channels=False):
+    def __init__(
+            self, 
+            net_name='r2plus1d_18', 
+            agr_type='max', 
+            channel_reducer_config=None
+        ):
         super().__init__()
 
         self.net_name = net_name
@@ -56,15 +61,10 @@ class MVNetwork(torch.nn.Module):
             feat_dim=self.feat_dim, 
         )
 
-        if reduce_channels:
-            print("--> Adding channel reducer")
+        if channel_reducer_config is not None:
+            print(f"--> Adding channel reducer with config: {channel_reducer_config}")
             self.channel_reducer = ChannelReducer(
-                in_channels=4,
-                out_channels=3,
-                kernel_size=5,
-                padding=2,
-                stride=1,
-                bias=True
+                **channel_reducer_config
             )
         else:
             self.channel_reducer = None
