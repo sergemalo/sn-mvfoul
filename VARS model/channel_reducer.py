@@ -11,7 +11,8 @@ class ChannelReducer(nn.Module):
                  dilation: int = 1,
                  groups: int = 1,
                  bias: bool = True,
-                 padding_mode: str = 'zeros'):
+                 padding_mode: str = 'zeros',
+                 activation: str = None):
         """
         Channel reducer for multiview video format
         
@@ -25,6 +26,7 @@ class ChannelReducer(nn.Module):
             groups (int): Number of blocked connections from input to output channels. Default: 1
             bias (bool): If True, adds a learnable bias to the output. Default: True
             padding_mode (str): 'zeros', 'reflect', 'replicate' or 'circular'. Default: 'zeros'
+            activation (str): Type of activation function to use. Options: 'relu', 'leakyrelu', 'sigmoid', 'tanh', or None. Default: None
         """
         super().__init__()
         
@@ -43,6 +45,20 @@ class ChannelReducer(nn.Module):
             bias=bias,
             padding_mode=padding_mode
         )
+        
+        # Set activation function
+        self.activation = None
+        if activation is not None:
+            if activation.lower() == 'relu':
+                self.activation = nn.ReLU()
+            elif activation.lower() == 'leakyrelu':
+                self.activation = nn.LeakyReLU(0.1)
+            elif activation.lower() == 'sigmoid':
+                self.activation = nn.Sigmoid()
+            elif activation.lower() == 'tanh':
+                self.activation = nn.Tanh()
+            else:
+                print(f"WARNING: Unknown activation '{activation}'. Using no activation.")
     
     def forward(self, x):
         """
@@ -76,6 +92,10 @@ class ChannelReducer(nn.Module):
         
         # Apply channel reduction
         reduced = self.conv(reshaped)
+        
+        # Apply activation if specified
+        if self.activation is not None:
+            reduced = self.activation(reduced)
         
         # Reshape back to original dimensions but with reduced channels
         result = reduced.reshape(batch_size, num_views, frames, self.out_channels, height, width)
@@ -154,14 +174,15 @@ if __name__ == "__main__":
         out_channels=out_channels
     )
     
-    # Advanced usage with custom convolution parameters
+    # Advanced usage with custom convolution parameters and activation
     model_custom = ChannelReducer(
         in_channels=in_channels,
         out_channels=out_channels,
         kernel_size=3,       # Using 3x3 convolution instead of 1x1
         padding=1,           # Add padding to maintain spatial dimensions
         stride=1,
-        bias=False           # Disable bias
+        bias=False,          # Disable bias
+        activation='relu'    # Add ReLU activation
     )
     
     # Example input - Multiview video format (batch, views, channels, frames, height, width)
