@@ -96,9 +96,8 @@ class ChannelReducer(nn.Module):
                 
             # Optionally increase weights for active channels to compensate
             if self.initial_channels > 0:
-                scale_factor = self.in_channels / self.initial_channels
                 for i in range(self.initial_channels):
-                    self.conv1.weight[:, i, :, :] *= scale_factor
+                    self.conv1.weight[:, i, :, :] = 1.0
 
     def forward(self, x):
         """
@@ -379,6 +378,7 @@ if __name__ == "__main__":
         active_weights = model_active_channels.conv1.weight[:, :3, :, :]
         print(f"\nInactive channel weights sum: {inactive_weights.abs().sum().item()}")
         print(f"Active channel weights sum: {active_weights.abs().sum().item()}")
+        print(f"Active channel weights: {model_active_channels._get_weights_magnitude()['relative_importance']}")
     
     # Analyze channel importance
     importance = model_default.get_channel_importance()
