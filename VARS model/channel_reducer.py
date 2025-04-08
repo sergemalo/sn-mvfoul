@@ -91,12 +91,9 @@ class ChannelReducer(nn.Module):
         # Get the current weights of conv1
         with torch.no_grad():
             # Zero out weights for inactive channels
-            for i in range(self.initial_channels, self.in_channels):
-                self.conv1.weight[:, i, :, :] = 0.0
-                
+            self.conv1.weight[:, self.initial_channels:, :, :] = 0.0
             # Initialize weights for active channels with small random values
             if self.initial_channels > 0:
-                # Initialize active channel weights
                 nn.init.xavier_normal_(self.conv1.weight[:, :self.initial_channels, :, :])
 
     def forward(self, x):
