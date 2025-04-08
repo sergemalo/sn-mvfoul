@@ -148,9 +148,9 @@ class ChannelReducer(nn.Module):
         return result 
     
     def get_channel_importance(self):
-        return self.get_weights_magnitude()
+        return self._get_weights_magnitude()
 
-    def get_weights_magnitude(self):
+    def _get_weights_magnitude(self):
         """
         Analyze the importance of each input channel based on weight magnitude.
         
@@ -185,7 +185,7 @@ class ChannelReducer(nn.Module):
             'per_output_channel': per_output_channel
         }
 
-    def get_gradients_magnitude(self):
+    def _get_gradients_magnitude(self):
         """
         Analyze the importance of each input channel in the output based on gradient magnitude.
         This method should be called after a backward pass has occurred.
