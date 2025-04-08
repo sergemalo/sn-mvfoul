@@ -146,8 +146,46 @@ class ChannelReducer(nn.Module):
         result = result.permute(0, 1, 3, 2, 4, 5)
         
         return result 
-
+    
     def get_channel_importance(self):
+        return self.get_weights_magnitude()
+
+    def get_weights_magnitude(self):
+        """
+        Analyze the importance of each input channel based on weight magnitude.
+        
+        Returns:
+            dict: Dictionary containing:
+                - 'absolute_importance': Tensor of shape (in_channels,) showing absolute importance
+                - 'relative_importance': Tensor of shape (in_channels,) showing relative importance (sums to 1)
+                - 'per_output_channel': Tensor of shape (out_channels, in_channels) showing importance per output channel
+        """
+        # Get the weights of the convolution
+        weights = self.conv1.weight.clone().detach()
+        
+        # Calculate absolute importance for each input channel based on weight magnitude
+        # Sum across output channels and spatial dimensions
+        absolute_importance = torch.sum(torch.abs(weights), dim=(0, 2, 3))
+        
+        # Calculate relative importance (normalized to sum to 1)
+        # Handle case where all weights might be zero
+        sum_importance = torch.sum(absolute_importance)
+        if sum_importance > 0:
+            relative_importance = absolute_importance / sum_importance
+        else:
+            relative_importance = torch.zeros_like(absolute_importance)
+        
+        # Calculate importance per output channel
+        # Sum across spatial dimensions only
+        per_output_channel = torch.sum(torch.abs(weights), dim=(2, 3))
+        
+        return {
+            'absolute_importance': absolute_importance,
+            'relative_importance': relative_importance,
+            'per_output_channel': per_output_channel
+        }
+
+    def get_gradients_magnitude(self):
         """
         Analyze the importance of each input channel in the output based on gradient magnitude.
         This method should be called after a backward pass has occurred.
