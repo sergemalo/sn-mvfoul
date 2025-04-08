@@ -93,6 +93,7 @@ def get_channel_reducer_config(args):
         kernel_size = args.channel_reducer_kernel_size
         bias = args.channel_reducer_bias
         hidden_channels = args.channel_reducer_hidden_channels
+        initial_channels = args.channel_reducer_initial_channels
 
         # Compute padding so that the output shape is the same as the input shape
         padding = (kernel_size - 1) // 2
@@ -104,7 +105,8 @@ def get_channel_reducer_config(args):
             "kernel_size": kernel_size,
             "padding": padding,
             "bias": bias,
-            "activation": activation
+            "activation": activation,
+            "initial_channels": initial_channels
         }
     else:
         return None
@@ -377,6 +379,7 @@ if __name__ == '__main__':
     parser.add_argument("--channel_reducer_kernel_size", required=False, type=int, default=1, help="Channel reducer kernel size (1 to 9)")
     parser.add_argument("--channel_reducer_bias", required=False, type=bool, default=True, help="Channel reducer bias")
     parser.add_argument("--channel_reducer_hidden_channels", required=False, type=int, default=32, help="Channel reducer hidden channels")
+    parser.add_argument("--channel_reducer_initial_channels", required=False, type=int, default=None, help="Channel reducer initial active channels")
 
     parser.add_argument("--wandb_run_name", required=True, type=str, help="Wandb run name")
     parser.add_argument("--wandb_saving_model_name", required=False, type=str, default="", help="Name of the Artifact to save the checkpoints in")
@@ -404,7 +407,8 @@ if __name__ == '__main__':
                                     "Channel reducer activation": args.channel_reducer_activation,
                                     "Channel reducer kernel size": args.channel_reducer_kernel_size,
                                     "Channel reducer bias": args.channel_reducer_bias,
-                                    "Channel reducer hidden channels": args.channel_reducer_hidden_channels
+                                    "Channel reducer hidden channels": args.channel_reducer_hidden_channels,
+                                    "Channel reducer initial channels": args.channel_reducer_initial_channels
                                     }
                             )
     

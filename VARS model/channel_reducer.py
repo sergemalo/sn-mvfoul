@@ -15,7 +15,7 @@ class ChannelReducer(nn.Module):
                  padding_mode: str = 'zeros',
                  activation: str = 'leakyrelu',
                  data_range: tuple = (0, 255),
-                 active_input_channels: int = None):
+                 initial_channels: int = None):
         """
         Channel reducer for multiview video format
         
@@ -31,13 +31,13 @@ class ChannelReducer(nn.Module):
             padding_mode (str): 'zeros', 'reflect', 'replicate' or 'circular'. Default: 'zeros'
             activation (str): Type of activation function to use. Options: 'relu', 'leakyrelu', 'sigmoid', 'tanh'. Default: 'leakyrelu'
             data_range (tuple): Range of the data. Default: (0, 255)
-            active_input_channels (int): Number of input channels to use for initialization. If None, all channels are used. Default: None
+            initial_channels (int): Number of input channels to use for initialization. If None, all channels are used. Default: None
         """
         super().__init__()
         
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.active_input_channels = active_input_channels if active_input_channels is not None else in_channels
+        self.initial_channels = initial_channels if initial_channels is not None else in_channels
         
         # Create a configurable convolution to reduce channels
         self.conv1 = nn.Conv2d(
@@ -78,25 +78,25 @@ class ChannelReducer(nn.Module):
         self.output_activation = nn.Sigmoid()
         self.data_range = data_range
         
-        # Initialize weights for only the active input channels
-        if self.active_input_channels < self.in_channels:
-            self._initialize_active_channels()
+        # Initialize weights for only the initial channels
+        if self.initial_channels < self.in_channels:
+            self._initialize_channels()
     
-    def _initialize_active_channels(self):
+    def _initialize_channels(self):
         """
-        Initialize weights for only the first n channels specified by active_input_channels.
+        Initialize weights for only the first n channels specified by initial_channels.
         Set weights for other channels to zero.
         """
         # Get the current weights of conv1
         with torch.no_grad():
             # Zero out weights for inactive channels
-            for i in range(self.active_input_channels, self.in_channels):
+            for i in range(self.initial_channels, self.in_channels):
                 self.conv1.weight[:, i, :, :] = 0.0
                 
             # Optionally increase weights for active channels to compensate
-            if self.active_input_channels > 0:
-                scale_factor = self.in_channels / self.active_input_channels
-                for i in range(self.active_input_channels):
+            if self.initial_channels > 0:
+                scale_factor = self.in_channels / self.initial_channels
+                for i in range(self.initial_channels):
                     self.conv1.weight[:, i, :, :] *= scale_factor
 
     def forward(self, x):
@@ -234,7 +234,7 @@ if __name__ == "__main__":
         in_channels=in_channels,
         out_channels=out_channels,
         hidden_channels=32,
-        active_input_channels=3  # Only initialize weights for first 3 channels
+        initial_channels=3  # Only initialize weights for first 3 channels
     )
     
     # Example input - Multiview video format (batch, views, channels, frames, height, width)
