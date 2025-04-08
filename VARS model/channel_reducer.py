@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import os
 
 class ChannelReducer(nn.Module):
     def __init__(self, 
@@ -237,6 +238,83 @@ class ChannelReducer(nn.Module):
             'no_grad_available': False
         }
 
+    def save_model(self, path, include_metadata=True):
+        """
+        Save the model to the specified path.
+        
+        Args:
+            path (str): Path where the model will be saved
+            include_metadata (bool): Whether to include metadata about the model configuration
+        
+        Returns:
+            str: Path where the model was saved
+        """
+        # Create a dictionary with the model state
+        save_dict = {
+            'state_dict': self.state_dict(),
+        }
+        
+        # Add metadata if requested
+        if include_metadata:
+            metadata = {
+                'in_channels': self.in_channels,
+                'out_channels': self.out_channels,
+                'initial_channels': self.initial_channels,
+                'data_range': self.data_range,
+                'channel_importance': self._get_weights_magnitude(),
+            }
+            save_dict['metadata'] = metadata
+        
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        
+        # Save the model
+        torch.save(save_dict, path)
+        print(f"Model saved to {path}")
+        
+        return path
+    
+    @classmethod
+    def load_model(cls, path, map_location=None):
+        """
+        Load a model from the specified path.
+        
+        Args:
+            path (str): Path to the saved model
+            map_location: Optional torch.device to map model to a specific device
+        
+        Returns:
+            ChannelReducer: Loaded model
+        """
+        # Load the saved dictionary
+        saved_dict = torch.load(path, map_location=map_location)
+        
+        # Check if we have metadata
+        if 'metadata' in saved_dict:
+            metadata = saved_dict['metadata']
+            # Create a new model with the saved configuration
+            model = cls(
+                in_channels=metadata['in_channels'],
+                out_channels=metadata['out_channels'],
+                hidden_channels=32,  # Default value
+                initial_channels=metadata.get('initial_channels', None),
+                data_range=metadata.get('data_range', (0, 255))
+            )
+            print(f"Loaded model with {metadata['in_channels']} input channels and {metadata['out_channels']} output channels")
+        else:
+            # If no metadata, we need the configuration to create the model
+            print("WARNING: No metadata found in saved model. Using default configuration.")
+            model = cls(
+                in_channels=4,  # Default value
+                out_channels=3,  # Default value
+                hidden_channels=32  # Default value
+            )
+        
+        # Load state dictionary
+        model.load_state_dict(saved_dict['state_dict'])
+        
+        return model
+
 # Example usage
 if __name__ == "__main__":
     # Example parameters
@@ -307,4 +385,16 @@ if __name__ == "__main__":
     print("\nChannel Importance Analysis:")
     print(f"Absolute importance: {importance['absolute_importance']}")
     print(f"Relative importance: {importance['relative_importance']}")
-    print(f"Per output channel importance:\n{importance['per_output_channel']}") 
+    print(f"Per output channel importance:\n{importance['per_output_channel']}")
+    
+    # Example of saving and loading the model
+    save_path = os.path.join("models", "channel_reducer.pt")
+    model_default.save_model(save_path)
+    
+    # Load the model
+    loaded_model = ChannelReducer.load_model(save_path)
+    
+    # Verify the loaded model works
+    output_loaded = loaded_model(x)
+    print(f"\nLoaded model output shape: {output_loaded.shape}")
+    print(f"Loaded model output range: {output_loaded.min().item()}, {output_loaded.max().item()}") 
