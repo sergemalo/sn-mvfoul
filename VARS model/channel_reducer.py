@@ -5,6 +5,7 @@ class ChannelReducer(nn.Module):
     def __init__(self, 
                  in_channels: int,
                  out_channels: int,
+                 hidden_channels: int,
                  kernel_size: int = 1,
                  stride: int = 1,
                  padding: int = 0,
@@ -12,7 +13,8 @@ class ChannelReducer(nn.Module):
                  groups: int = 1,
                  bias: bool = True,
                  padding_mode: str = 'zeros',
-                 activation: str = None):
+                 activation: str = 'leakyrelu',
+                 data_range: tuple = (0, 255)):
         """
         Channel reducer for multiview video format
         
@@ -26,7 +28,8 @@ class ChannelReducer(nn.Module):
             groups (int): Number of blocked connections from input to output channels. Default: 1
             bias (bool): If True, adds a learnable bias to the output. Default: True
             padding_mode (str): 'zeros', 'reflect', 'replicate' or 'circular'. Default: 'zeros'
-            activation (str): Type of activation function to use. Options: 'relu', 'leakyrelu', 'sigmoid', 'tanh', or None. Default: None
+            activation (str): Type of activation function to use. Options: 'relu', 'leakyrelu', 'sigmoid', 'tanh'. Default: 'leakyrelu'
+            data_range (tuple): Range of the data. Default: (0, 255)
         """
         super().__init__()
         
@@ -34,9 +37,9 @@ class ChannelReducer(nn.Module):
         self.out_channels = out_channels
         
         # Create a configurable convolution to reduce channels
-        self.conv = nn.Conv2d(
+        self.conv1 = nn.Conv2d(
             in_channels, 
-            out_channels, 
+            hidden_channels, 
             kernel_size=kernel_size,
             stride=stride,
             padding=padding,
@@ -45,20 +48,32 @@ class ChannelReducer(nn.Module):
             bias=bias,
             padding_mode=padding_mode
         )
-        
-        # Set activation function
-        self.activation = None
-        if activation is not None:
-            if activation.lower() == 'relu':
-                self.activation = nn.ReLU()
-            elif activation.lower() == 'leakyrelu':
-                self.activation = nn.LeakyReLU(0.1)
-            elif activation.lower() == 'sigmoid':
-                self.activation = nn.Sigmoid()
-            elif activation.lower() == 'tanh':
-                self.activation = nn.Tanh()
-            else:
-                print(f"WARNING: Unknown activation '{activation}'. Using no activation.")
+
+        self.conv2 = nn.Conv2d(
+            hidden_channels,
+            out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            dilation=dilation,
+            groups=groups,
+            bias=bias,
+            padding_mode=padding_mode
+        )
+
+        if activation.lower() == 'relu':
+            self.activation = nn.ReLU()
+        elif activation.lower() == 'leakyrelu':
+            self.activation = nn.LeakyReLU(0.1)
+        elif activation.lower() == 'sigmoid':
+            self.activation = nn.Sigmoid()
+        elif activation.lower() == 'tanh':
+            self.activation = nn.Tanh()
+        else:
+            print(f"WARNING: Unknown activation '{activation}'. Using no activation.")
+
+        self.output_activation = nn.Sigmoid()
+        self.data_range = data_range
     
     def forward(self, x):
         """
@@ -91,11 +106,13 @@ class ChannelReducer(nn.Module):
         reshaped = x.reshape(batch_size * num_views * frames, channels, height, width)
         
         # Apply channel reduction
-        reduced = self.conv(reshaped)
-        
-        # Apply activation if specified
-        if self.activation is not None:
-            reduced = self.activation(reduced)
+        reduced = self.conv1(reshaped)
+        reduced = self.activation(reduced)
+        reduced = self.conv2(reduced)
+        reduced = self.output_activation(reduced)
+        # Values are between 0 and 1, we need to scale it to 0 and 255
+        reduced = reduced * (self.data_range[1] - self.data_range[0]) + self.data_range[0]
+        reduced = reduced.int()
         
         # Reshape back to original dimensions but with reduced channels
         result = reduced.reshape(batch_size, num_views, frames, self.out_channels, height, width)
@@ -118,7 +135,7 @@ class ChannelReducer(nn.Module):
                 - 'no_grad_available': Boolean indicating if gradients were available
         """
         # Check if gradients are available
-        if self.conv.weight.grad is None:
+        if self.conv1.weight.grad is None:
             print("WARNING: No gradients available. Run backward pass before calling this method.")
             # Return zeros with appropriate shapes
             absolute_importance = torch.zeros(self.in_channels)
@@ -132,7 +149,7 @@ class ChannelReducer(nn.Module):
             }
         
         # Get the gradient of the convolution weights
-        grad = self.conv.weight.grad.clone().detach()
+        grad = self.conv1.weight.grad.clone().detach()
         
         # Calculate absolute importance for each input channel based on gradient magnitude
         # Sum across output channels and spatial dimensions
@@ -171,13 +188,15 @@ if __name__ == "__main__":
     # Basic usage with default parameters
     model_default = ChannelReducer(
         in_channels=in_channels,
-        out_channels=out_channels
+        out_channels=out_channels,
+        hidden_channels=32
     )
     
     # Advanced usage with custom convolution parameters and activation
     model_custom = ChannelReducer(
         in_channels=in_channels,
         out_channels=out_channels,
+        hidden_channels=32,
         kernel_size=3,       # Using 3x3 convolution instead of 1x1
         padding=1,           # Add padding to maintain spatial dimensions
         stride=1,
@@ -197,6 +216,8 @@ if __name__ == "__main__":
     print(f"Input shape: {x.shape}")
     print(f"Output shape (default model): {output_default.shape}")
     print(f"Output shape (custom model): {output_custom.shape}")
+    print(f"Output range (default model): {output_default.min().item()}, {output_default.max().item()}")
+    print(f"Output range (custom model): {output_custom.min().item()}, {output_custom.max().item()}")
     
     # Analyze channel importance
     importance = model_default.get_channel_importance()

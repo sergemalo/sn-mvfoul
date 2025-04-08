@@ -92,6 +92,7 @@ def get_channel_reducer_config(args):
         activation = args.channel_reducer_activation
         kernel_size = args.channel_reducer_kernel_size
         bias = args.channel_reducer_bias
+        hidden_channels = args.channel_reducer_hidden_channels
 
         # Compute padding so that the output shape is the same as the input shape
         padding = (kernel_size - 1) // 2
@@ -99,6 +100,7 @@ def get_channel_reducer_config(args):
         return {
             "in_channels": 4,
             "out_channels": 3,
+            "hidden_channels": hidden_channels,
             "kernel_size": kernel_size,
             "padding": padding,
             "bias": bias,
@@ -371,9 +373,10 @@ if __name__ == '__main__':
     parser.add_argument("--path_to_model_weights", required=False, type=str, default="", help="Path to the model weights")
     parser.add_argument("--depth_path", required=False, type=str, default=None, help="Path to the depth video dataset")
 
-    parser.add_argument("--channel_reducer_activation", required=False, type=str, default=None, help="Channel reducer activation")
+    parser.add_argument("--channel_reducer_activation", required=False, type=str, default='leakyrelu', help="Channel reducer activation")
     parser.add_argument("--channel_reducer_kernel_size", required=False, type=int, default=1, help="Channel reducer kernel size (1 to 9)")
     parser.add_argument("--channel_reducer_bias", required=False, type=bool, default=True, help="Channel reducer bias")
+    parser.add_argument("--channel_reducer_hidden_channels", required=False, type=int, default=32, help="Channel reducer hidden channels")
 
     parser.add_argument("--wandb_run_name", required=True, type=str, help="Wandb run name")
     parser.add_argument("--wandb_saving_model_name", required=False, type=str, default="", help="Name of the Artifact to save the checkpoints in")
@@ -400,7 +403,8 @@ if __name__ == '__main__':
                                     "Using Depth": args.depth_path is not None,
                                     "Channel reducer activation": args.channel_reducer_activation,
                                     "Channel reducer kernel size": args.channel_reducer_kernel_size,
-                                    "Channel reducer bias": args.channel_reducer_bias
+                                    "Channel reducer bias": args.channel_reducer_bias,
+                                    "Channel reducer hidden channels": args.channel_reducer_hidden_channels
                                     }
                             )
     
