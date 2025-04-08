@@ -94,10 +94,10 @@ class ChannelReducer(nn.Module):
             for i in range(self.initial_channels, self.in_channels):
                 self.conv1.weight[:, i, :, :] = 0.0
                 
-            # Optionally increase weights for active channels to compensate
+            # Initialize weights for active channels with small random values
             if self.initial_channels > 0:
-                for i in range(self.initial_channels):
-                    self.conv1.weight[:, i, :, :] = 1.0
+                # Initialize active channel weights
+                nn.init.xavier_normal_(self.conv1.weight[:, :self.initial_channels, :, :])
 
     def forward(self, x):
         """
@@ -148,6 +148,15 @@ class ChannelReducer(nn.Module):
         return result 
     
     def get_channel_importance(self):
+        """
+        Analyze the importance of each input channel based on weight magnitude.
+        
+        Returns:
+            dict: Dictionary containing:
+                - 'absolute_importance': Tensor of shape (in_channels,) showing absolute importance
+                - 'relative_importance': Tensor of shape (in_channels,) showing relative importance (sums to 1)
+                - 'per_output_channel': Tensor of shape (out_channels, in_channels) showing importance per output channel
+        """
         return self._get_weights_magnitude()
 
     def _get_weights_magnitude(self):
@@ -260,7 +269,7 @@ class ChannelReducer(nn.Module):
                 'out_channels': self.out_channels,
                 'initial_channels': self.initial_channels,
                 'data_range': self.data_range,
-                'channel_importance': self._get_weights_magnitude(),
+                'channel_importance': self.get_channel_importance(),
             }
             save_dict['metadata'] = metadata
         
