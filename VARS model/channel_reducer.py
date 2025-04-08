@@ -14,7 +14,8 @@ class ChannelReducer(nn.Module):
                  bias: bool = True,
                  padding_mode: str = 'zeros',
                  activation: str = 'leakyrelu',
-                 data_range: tuple = (0, 255)):
+                 data_range: tuple = (0, 255),
+                 active_input_channels: int = None):
         """
         Channel reducer for multiview video format
         
@@ -30,11 +31,13 @@ class ChannelReducer(nn.Module):
             padding_mode (str): 'zeros', 'reflect', 'replicate' or 'circular'. Default: 'zeros'
             activation (str): Type of activation function to use. Options: 'relu', 'leakyrelu', 'sigmoid', 'tanh'. Default: 'leakyrelu'
             data_range (tuple): Range of the data. Default: (0, 255)
+            active_input_channels (int): Number of input channels to use for initialization. If None, all channels are used. Default: None
         """
         super().__init__()
         
         self.in_channels = in_channels
         self.out_channels = out_channels
+        self.active_input_channels = active_input_channels if active_input_channels is not None else in_channels
         
         # Create a configurable convolution to reduce channels
         self.conv1 = nn.Conv2d(
@@ -74,7 +77,28 @@ class ChannelReducer(nn.Module):
 
         self.output_activation = nn.Sigmoid()
         self.data_range = data_range
+        
+        # Initialize weights for only the active input channels
+        if self.active_input_channels < self.in_channels:
+            self._initialize_active_channels()
     
+    def _initialize_active_channels(self):
+        """
+        Initialize weights for only the first n channels specified by active_input_channels.
+        Set weights for other channels to zero.
+        """
+        # Get the current weights of conv1
+        with torch.no_grad():
+            # Zero out weights for inactive channels
+            for i in range(self.active_input_channels, self.in_channels):
+                self.conv1.weight[:, i, :, :] = 0.0
+                
+            # Optionally increase weights for active channels to compensate
+            if self.active_input_channels > 0:
+                scale_factor = self.in_channels / self.active_input_channels
+                for i in range(self.active_input_channels):
+                    self.conv1.weight[:, i, :, :] *= scale_factor
+
     def forward(self, x):
         """
         Forward pass for multiview video format
@@ -140,7 +164,7 @@ class ChannelReducer(nn.Module):
             print("WARNING: No gradients available. Run backward pass before calling this method.")
             # Return zeros with appropriate shapes
             absolute_importance = torch.zeros(self.in_channels)
-            relative_importance = torch.ones(self.in_channels) / self.in_channels
+            relative_importance = torch.zeros(self.in_channels)
             per_output_channel = torch.zeros(self.out_channels, self.in_channels)
             return {
                 'absolute_importance': absolute_importance,
@@ -162,7 +186,7 @@ class ChannelReducer(nn.Module):
         if sum_importance > 0:
             relative_importance = absolute_importance / sum_importance
         else:
-            relative_importance = torch.ones_like(absolute_importance) / len(absolute_importance)
+            relative_importance = torch.zeros_like(absolute_importance)
         
         # Calculate importance per output channel
         # Sum across spatial dimensions only
@@ -205,6 +229,14 @@ if __name__ == "__main__":
         activation='relu'    # Add ReLU activation
     )
     
+    # Example with active input channels - only using the first 3 channels of a 4-channel input
+    model_active_channels = ChannelReducer(
+        in_channels=in_channels,
+        out_channels=out_channels,
+        hidden_channels=32,
+        active_input_channels=3  # Only initialize weights for first 3 channels
+    )
+    
     # Example input - Multiview video format (batch, views, channels, frames, height, width)
     x = torch.randn(batch_size, views, in_channels, frames, height, width)
     
@@ -214,11 +246,23 @@ if __name__ == "__main__":
     # Forward pass with custom model
     output_custom = model_custom(x)
     
+    # Forward pass with active channels model
+    output_active = model_active_channels(x)
+    
     print(f"Input shape: {x.shape}")
     print(f"Output shape (default model): {output_default.shape}")
     print(f"Output shape (custom model): {output_custom.shape}")
+    print(f"Output shape (active channels model): {output_active.shape}")
     print(f"Output range (default model): {output_default.min().item()}, {output_default.max().item()}")
     print(f"Output range (custom model): {output_custom.min().item()}, {output_custom.max().item()}")
+    print(f"Output range (active channels model): {output_active.min().item()}, {output_active.max().item()}")
+    
+    # Verify that inactive channel weights are zero in the active channels model
+    with torch.no_grad():
+        inactive_weights = model_active_channels.conv1.weight[:, 3, :, :]
+        active_weights = model_active_channels.conv1.weight[:, :3, :, :]
+        print(f"\nInactive channel weights sum: {inactive_weights.abs().sum().item()}")
+        print(f"Active channel weights sum: {active_weights.abs().sum().item()}")
     
     # Analyze channel importance
     importance = model_default.get_channel_importance()
