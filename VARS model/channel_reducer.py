@@ -101,7 +101,8 @@ class ChannelReducer(nn.Module):
             
             # Set weights for inactive channels to zero.
             if self.initial_channels < self.in_channels:
-                self.conv1.weight[:, self.initial_channels:, :, :] = 0.0
+                eps = 1e-6
+                self.conv1.weight[:, self.initial_channels:, :, :] = eps
 
     def forward(self, x):
         """
