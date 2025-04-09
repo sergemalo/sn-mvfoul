@@ -79,22 +79,28 @@ class ChannelReducer(nn.Module):
         self.output_activation = nn.Sigmoid()
         self.data_range = data_range
         
-        # Initialize weights for only the initial channels
-        if self.initial_channels < self.in_channels:
-            self._initialize_channels()
+        # Initialize weights
+        self.initialize_weights()
     
-    def _initialize_channels(self):
+    def initialize_weights(self):
         """
-        Initialize weights for only the first n channels specified by initial_channels.
-        Set weights for other channels to zero.
+        Initialize all weights in the model using Xavier initialization.
+        This will override any previous initialization.
         """
-        # Get the current weights of conv1
         with torch.no_grad():
-            # Zero out weights for inactive channels
-            self.conv1.weight[:, self.initial_channels:, :, :] = 0.0
-            # Initialize weights for active channels with small random values
-            if self.initial_channels > 0:
-                nn.init.xavier_normal_(self.conv1.weight[:, :self.initial_channels, :, :])
+            # Initialize conv1 weights
+            nn.init.xavier_normal_(self.conv1.weight)
+            if self.conv1.bias is not None:
+                nn.init.zeros_(self.conv1.bias)
+            
+            # Initialize conv2 weights
+            nn.init.xavier_normal_(self.conv2.weight)
+            if self.conv2.bias is not None:
+                nn.init.zeros_(self.conv2.bias)
+            
+            # Set weights for inactive channels to zero.
+            if self.initial_channels < self.in_channels:
+                self.conv1.weight[:, self.initial_channels:, :, :] = 0.0
 
     def forward(self, x):
         """
