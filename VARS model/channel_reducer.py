@@ -132,9 +132,9 @@ class ChannelReducer(nn.Module):
         reduced = self.conv2(reduced)
         reduced = self.output_activation(reduced)
         # Values are between 0 and 1, we need to scale it to 0 and 255
-        reduced = reduced * (self.data_range[1] - self.data_range[0]) + self.data_range[0]
-        # Round to the nearest integer
-        reduced = torch.round(reduced)
+        scale = self.data_range[1] - self.data_range[0]
+        offset = self.data_range[0]
+        reduced = reduced.mul(scale).add(offset)
         
         # Reshape back to original dimensions but with reduced channels
         result = reduced.reshape(batch_size, num_views, frames, self.out_channels, height, width)
