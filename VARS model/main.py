@@ -6,7 +6,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from SoccerNet.Evaluation.MV_FoulRecognition import evaluate
 import torch
 from dataset import MultiViewDataset
-from train import trainer, evaluation
+from train import trainer, evaluation, save_channel_reducer_model
 import torch.nn as nn
 import torchvision.transforms as transforms
 from model import MVNetwork
@@ -339,6 +339,8 @@ def main(args, wandb_run, model_artifact):
                 model_saving_dir, epoch_start, model_name=model_name, path_dataset=path, wandb_run=wandb_run,
                 model_artifact=model_artifact, max_epochs=max_epochs)
         
+        save_channel_reducer_model(model, os.path.join(model_saving_dir, 'channel_reducer.pt'))
+        
     print("--> MAIN DONE! ")
     return 0
 
@@ -423,7 +425,6 @@ if __name__ == '__main__':
     if args.GPU >= 0:
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = str(args.GPU)
-
 
     # Start the main training function
     start=time.time()

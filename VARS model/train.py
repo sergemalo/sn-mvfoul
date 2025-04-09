@@ -75,6 +75,10 @@ def get_channel_importance(model):
 def has_channel_reducer(model):
     return hasattr(model, 'channel_reducer') and model.channel_reducer is not None
 
+def save_channel_reducer_model(model, path):
+    if has_channel_reducer(model):
+        model.channel_reducer.save_model(path)
+
 def trainer(train_loader,
             val_loader2,
             test_loader2,
