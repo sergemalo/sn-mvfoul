@@ -68,7 +68,7 @@ def set_wandb_metrics(wandb_run, define_channel_importance = False):
 def get_channel_importance(model):
     if has_channel_reducer(model):
         values = model.channel_reducer.get_channel_importance()
-        return values['relative_importance']
+        return values['absolute_importance']
     else:
         return None
     

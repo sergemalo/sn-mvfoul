@@ -160,7 +160,7 @@ class ChannelReducer(nn.Module):
                 - 'relative_importance': Tensor of shape (in_channels,) showing relative importance (sums to 1)
                 - 'per_output_channel': Tensor of shape (out_channels, in_channels) showing importance per output channel
         """
-        return self._get_weights_magnitude()
+        return self._get_gradients_magnitude()
 
     def _get_weights_magnitude(self):
         """
