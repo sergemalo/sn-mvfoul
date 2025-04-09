@@ -55,6 +55,10 @@ def load_and_process_video(video_path: str, depth_path: str) -> torch.Tensor:
     if depth_video is None:
         raise ValueError(f"Depth video is not loaded correctly. Path: {depth_path}")
     
+    # Convert to float and normalize to [0, 1]
+    video = video.float()
+    depth_video = depth_video.float()
+
     # Process frames
     final_frames = process_video_frames(video)
     depth_final_frames = process_video_frames(depth_video)
