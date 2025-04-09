@@ -38,6 +38,7 @@ class ChannelReducer(nn.Module):
         
         self.in_channels = in_channels
         self.out_channels = out_channels
+        self.hidden_channels = hidden_channels
         self.initial_channels = initial_channels if initial_channels is not None else in_channels
         
         # Create a configurable convolution to reduce channels
@@ -270,6 +271,7 @@ class ChannelReducer(nn.Module):
             metadata = {
                 'in_channels': self.in_channels,
                 'out_channels': self.out_channels,
+                'hidden_channels': self.hidden_channels,
                 'initial_channels': self.initial_channels,
                 'data_range': self.data_range,
                 'channel_importance': self.get_channel_importance(),
@@ -307,7 +309,7 @@ class ChannelReducer(nn.Module):
             model = cls(
                 in_channels=metadata['in_channels'],
                 out_channels=metadata['out_channels'],
-                hidden_channels=32,  # Default value
+                hidden_channels=metadata.get('hidden_channels', 16),
                 initial_channels=metadata.get('initial_channels', None),
                 data_range=metadata.get('data_range', (0, 255))
             )
