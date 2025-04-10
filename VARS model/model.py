@@ -14,7 +14,7 @@ from torchvision.models.video import s3d, S3D_Weights
 
 class MVNetwork(torch.nn.Module):
 
-    def __init__(self, net_name='r2plus1d_18', agr_type='max'):
+    def __init__(self, net_name='r2plus1d_18', agr_type='max', dropout=None):
         super().__init__()
 
         self.net_name = net_name
@@ -22,30 +22,35 @@ class MVNetwork(torch.nn.Module):
         
         self.feat_dim = 512
 
+        # Other options for the model
+        kwargs = {}
+        if dropout is not None:
+            kwargs['dropout'] = dropout
+
         if net_name == "r3d_18":                            # ResNet
             weights_model = R3D_18_Weights.DEFAULT          # KINETICS400_V1
-            network = r3d_18(weights=weights_model)
+            network = r3d_18(weights=weights_model, **kwargs)
         elif net_name == "r2plus1d_18":                     # R(2+1)D
             weights_model = R2Plus1D_18_Weights.DEFAULT     # KINETICS400_V1
-            network = r2plus1d_18(weights=weights_model)
+            network = r2plus1d_18(weights=weights_model, **kwargs)
         elif net_name == "mvit_v2_s":                       # MViTv2 (small)
             weights_model = MViT_V2_S_Weights.DEFAULT       # KINETICS400_V1
-            network = mvit_v2_s(weights=weights_model)
+            network = mvit_v2_s(weights=weights_model, **kwargs)
             self.feat_dim = 400
         elif net_name == "swin3d_t":                        # Swin3d Transformer (tiny)
             weights_model = Swin3D_T_Weights.DEFAULT        # KINETICS400_V1
-            network = swin3d_t(weights=weights_model)
+            network = swin3d_t(weights=weights_model, **kwargs)
             self.feat_dim = 400
         elif net_name == "swin3d_s":                        # Swin3d Transformer (tiny)
             weights_model = Swin3D_S_Weights.DEFAULT        # KINETICS400_V1
-            network = swin3d_s(weights=weights_model)
+            network = swin3d_s(weights=weights_model, **kwargs)
             self.feat_dim = 400
         elif net_name == "mc3_18":
             weights_model = MC3_18_Weights.DEFAULT
-            network = mc3_18(weights=weights_model)
+            network = mc3_18(weights=weights_model, **kwargs)
         elif net_name == "s3d":
             weights_model = S3D_Weights.DEFAULT
-            network = s3d(weights=weights_model)
+            network = s3d(weights=weights_model, **kwargs)
             self.feat_dim = 400
         
                 

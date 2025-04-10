@@ -112,6 +112,7 @@ def main(args, wandb_run, model_artifact):
         only_evaluation = args.only_evaluation
         path_to_model_weights = args.path_to_model_weights
         seed = args.seed
+        dropout = args.dropout
     else:
         print("ERROR: No arguments given.")
         exit()
@@ -211,7 +212,7 @@ def main(args, wandb_run, model_artifact):
                                                    num_workers=max_num_worker, pin_memory=True)
 
     print(f"--> Creating the model: {pre_model} with pooling: {pooling_type}")
-    model = MVNetwork(net_name=pre_model, agr_type=pooling_type).cuda()
+    model = MVNetwork(net_name=pre_model, agr_type=pooling_type, dropout=dropout).cuda()
 
     if path_to_model_weights != "":
         print("--> Loading model weights from: ", path_to_model_weights)
@@ -339,6 +340,7 @@ if __name__ == '__main__':
     parser.add_argument("--step_size", required=False, type=int, default=3, help="StepLR parameter")
     parser.add_argument("--gamma", required=False, type=float, default=0.1, help="StepLR parameter")
     parser.add_argument("--weight_decay", required=False, type=float, default=0.001, help="Weight decacy")
+    parser.add_argument("--dropout", required=False, type=float, default=None, help="Dropout")
 
     parser.add_argument("--only_evaluation", required=False, type=int, default=3, help="Only evaluation, 0 = on test set, 1 = on chall set, 2 = on both sets and 3 = train/valid/test")
     parser.add_argument("--path_to_model_weights", required=False, type=str, default="", help="Path to the model weights")
@@ -364,6 +366,7 @@ if __name__ == '__main__':
                                     "Data augmentation": args.data_aug,
                                     "Number of views": args.num_views,
                                     "FPS": args.fps,
+                                    "Dropout": args.dropout,
                                     "Seed": args.seed}
                             )
     
