@@ -99,9 +99,11 @@ def load_and_process_video(video_path: str, depth_path: str, keep_only_channel: 
 
 
 def process_video_frames(video: torch.Tensor) -> torch.Tensor:
-    """Process video frames"""
+    """Process video frames. Output shape: (channels, frames, height, width)"""
     # Extract frames between start and end
-    frames = video[START_FRAME:END_FRAME, :, :, :]
+    frames = video[START_FRAME:END_FRAME, :, :, :] # (frames, height, width, channels)
+
+    print(f"Frames shape: {frames.shape}")
     
     # Downsample frames
     final_frames = None
@@ -113,10 +115,7 @@ def process_video_frames(video: torch.Tensor) -> torch.Tensor:
     if final_frames is None:
         return None
 
-    # Apply transformations
-    final_frames = final_frames.permute(0, 3, 1, 2)
-    
-    return final_frames.permute(1, 0, 2, 3)
+    return final_frames.permute(3, 0, 1, 2)
 
 def save_tensor_as_video(tensor: torch.Tensor, output_path: str, sort_channels: bool = False):
     """
@@ -175,6 +174,7 @@ def main():
             input_all_channels, magnitude_all_channels = load_and_process_video(VIDEO_PATH, DEPTH_PATH)
             magnitudes.append(magnitude_all_channels)
             output_tensor = model(input_all_channels)
+            print(f"Output tensor shape: {output_tensor.shape}")
             output_path = OUTPUT_PATH + "_all_channels.mp4"
             save_tensor_as_video(output_tensor, output_path, sort_channels=True)
             print(f"Processing complete. Output saved to {output_path}")
@@ -185,9 +185,10 @@ def main():
             for i in range(1, 5):
                 print("-"*30)
                 print(f"Reducing channel {i}...")
-                input_tensor, magnitude_tensor = load_and_process_video(VIDEO_PATH, DEPTH_PATH, keep_only_channel=i)
+                input_tensor, magnitude_tensor = load_and_process_video(VIDEO_PATH, DEPTH_PATH, keep_only_channel=i-1)
                 magnitudes.append(magnitude_tensor)
                 output_tensor = model(input_tensor)
+                print(f"Output tensor shape: {output_tensor.shape}")
                 output_path = OUTPUT_PATH + f"_channel_{i}.mp4"
                 save_tensor_as_video(output_tensor, output_path, sort_channels=True)
                 print(f"Processing complete. Output saved to {output_path}")

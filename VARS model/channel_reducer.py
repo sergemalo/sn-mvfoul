@@ -132,7 +132,8 @@ class ChannelReducer(nn.Module):
         
         # Reshape to process all views and frames at once using batched operations
         # Reshape to (batch_size * num_views * frames, channels, height, width)
-        reshaped = x.reshape(batch_size * num_views * frames, channels, height, width)
+        reshaped = x.permute(0, 1, 3, 2, 4, 5)
+        reshaped = reshaped.reshape(batch_size * num_views * frames, channels, height, width)
         
         # Apply channel reduction
         reduced = self.conv1(reshaped)
@@ -143,7 +144,7 @@ class ChannelReducer(nn.Module):
         scale = self.data_range[1] - self.data_range[0]
         offset = self.data_range[0]
         reduced = reduced.mul(scale).add(offset)
-        
+
         # Reshape back to original dimensions but with reduced channels
         result = reduced.reshape(batch_size, num_views, frames, self.out_channels, height, width)
         
