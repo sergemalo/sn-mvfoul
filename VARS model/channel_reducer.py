@@ -240,6 +240,10 @@ class ChannelReducer(nn.Module):
             relative_importance = absolute_importance / sum_importance
         else:
             relative_importance = torch.zeros_like(absolute_importance)
+
+        # Count the number of parameters per channel
+        num_parameters = self.conv1.weight.numel() / self.in_channels
+        absolute_importance = absolute_importance / num_parameters
         
         # Calculate importance per output channel
         # Sum across spatial dimensions only
