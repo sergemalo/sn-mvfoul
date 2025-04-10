@@ -10,7 +10,7 @@ import cv2
 CHANNEL_REDUCER_PATH = "models/channel_reducer.pt"
 VIDEO_PATH = "models/action_12/clip_1.mp4"  # Replace with your video path
 DEPTH_PATH = "models/action_12/depth/clip_1.mp4"  # Replace with your depth video path
-OUTPUT_PATH = "models/reduced_video.mp4"  # Replace with desired output path
+OUTPUT_PATH = "models/reduced_video"  # Replace with desired output path
 START_FRAME = 0
 END_FRAME = 100
 FPS = 25
@@ -32,7 +32,7 @@ def load_channel_reducer(model_path: str) -> ChannelReducer:
     model.eval()  # Set to evaluation mode
     return model
 
-def load_and_process_video(video_path: str, depth_path: str) -> torch.Tensor:
+def load_and_process_video(video_path: str, depth_path: str, keep_only_channel: int = None) -> torch.Tensor:
     """
     Load and process video and depth data into a tensor suitable for the channel reducer.
     
@@ -78,13 +78,24 @@ def load_and_process_video(video_path: str, depth_path: str) -> torch.Tensor:
     # Print final_frames shape
     print(f"Final frames shape before permute: {final_frames.shape}")
 
-    final_frames = final_frames.permute(0, 1, 2, 3, 4, 5)  # Ensure correct order
+    final_frames = final_frames.permute(0, 1, 2, 3, 4, 5)  # Ensure correct order: B, V, C, F, H, W
+
+    # Set unwanted channels to 0
+    if keep_only_channel is not None:
+        # Set unwanted channels to 0
+        all_channels = torch.arange(final_frames.shape[2])
+        unwanted_channels = torch.tensor([x for x in all_channels if x != keep_only_channel])
+        print(f"Unwanted channels: {unwanted_channels}")
+        final_frames[:, :, unwanted_channels, :, :, :] = 0.0
 
     # Print final_frames shape
     print(f"Final frames shape after permute: {final_frames.shape}")
 
+    # Compute the magnitude of the whole tensor
+    magnitude = torch.mean(final_frames)
+    print(f"Magnitude: {magnitude}")
     
-    return final_frames
+    return final_frames, magnitude
 
 
 def process_video_frames(video: torch.Tensor) -> torch.Tensor:
@@ -154,33 +165,49 @@ def main():
         # Load model
         print("Loading channel reducer model...")
         model = load_channel_reducer(CHANNEL_REDUCER_PATH)
+        magnitudes = []
         
-        # Load and process video
-        print("Loading and processing video...")
-        input_tensor = load_and_process_video(VIDEO_PATH, DEPTH_PATH)
-        
-        # Process through channel reducer
-        print("Processing through channel reducer...")
         with torch.no_grad():
-            output_tensor = model(input_tensor)
             # --------------------------------------------------------------------------
-            # TESTING
-            # output_tensor = input_tensor
-            # print(f"Output tensor shape: {output_tensor.shape}")
-            # Output tensor shape: torch.Size([1, 1, 4, 100, 224, 398])
-            # Drop last channel
-            # output_tensor = output_tensor[:, :, :-1, :, :, :]
-            # print(f"Output tensor shape after dropping last channel: {output_tensor.shape}")
+            # All channels
+            print("-"*30)
+            print("Reducing all channels...")
+            input_all_channels, magnitude_all_channels = load_and_process_video(VIDEO_PATH, DEPTH_PATH)
+            magnitudes.append(magnitude_all_channels)
+            output_tensor = model(input_all_channels)
+            output_path = OUTPUT_PATH + "_all_channels.mp4"
+            save_tensor_as_video(output_tensor, output_path, sort_channels=True)
+            print(f"Processing complete. Output saved to {output_path}")
             # --------------------------------------------------------------------------
-        
-        # Save output video
-        print("Saving output video...")
-        save_tensor_as_video(output_tensor, OUTPUT_PATH, sort_channels=True)
-        
-        print(f"Processing complete. Output saved to {OUTPUT_PATH}")
+
+            # --------------------------------------------------------------------------
+            # Reducing channel 1
+            for i in range(1, 5):
+                print("-"*30)
+                print(f"Reducing channel {i}...")
+                input_tensor, magnitude_tensor = load_and_process_video(VIDEO_PATH, DEPTH_PATH, keep_only_channel=i)
+                magnitudes.append(magnitude_tensor)
+                output_tensor = model(input_tensor)
+                output_path = OUTPUT_PATH + f"_channel_{i}.mp4"
+                save_tensor_as_video(output_tensor, output_path, sort_channels=True)
+                print(f"Processing complete. Output saved to {output_path}")
+            # --------------------------------------------------------------------------
+            
+        # Print magnitudes
+        print(f"Magnitudes: {magnitudes}")
         
     except Exception as e:
         print(f"Error: {str(e)}")
 
 if __name__ == "__main__":
     main() 
+
+    # --------------------------------------------------------------------------
+    # TESTING
+    # output_tensor = input_tensor
+    # print(f"Output tensor shape: {output_tensor.shape}")
+    # Output tensor shape: torch.Size([1, 1, 4, 100, 224, 398])
+    # Drop last channel
+    # output_tensor = output_tensor[:, :, :-1, :, :, :]
+    # print(f"Output tensor shape after dropping last channel: {output_tensor.shape}")
+    # --------------------------------------------------------------------------
