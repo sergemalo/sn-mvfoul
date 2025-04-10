@@ -12,7 +12,7 @@ VIDEO_PATH = "models/action_12/clip_1.mp4"  # Replace with your video path
 DEPTH_PATH = "models/action_12/depth/clip_1.mp4"  # Replace with your depth video path
 OUTPUT_PATH = "models/reduced_video"  # Replace with desired output path
 START_FRAME = 0
-END_FRAME = 100
+END_FRAME = 1000
 FPS = 25
 
 def load_channel_reducer(model_path: str) -> ChannelReducer:
