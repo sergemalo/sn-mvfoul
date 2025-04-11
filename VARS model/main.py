@@ -211,7 +211,9 @@ def main(args, wandb_run, model_artifact):
                                                    num_workers=max_num_worker, pin_memory=True)
 
     print(f"--> Creating the model: {pre_model} with pooling: {pooling_type}")
-    model = MVNetwork(net_name=pre_model, agr_type=pooling_type).cuda()
+    model = MVNetwork(net_name=pre_model, agr_type=pooling_type)
+    #model = torch.nn.DataParallel(model)
+    model = model.cuda()
 
     if path_to_model_weights != "":
         print("--> Loading model weights from: ", path_to_model_weights)
