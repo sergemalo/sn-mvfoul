@@ -7,7 +7,7 @@ import numpy as np
 import cv2
 
 # Global variables
-CHANNEL_REDUCER_PATH = "models/channel_reducer.pt"
+CHANNEL_REDUCER_PATH = "models/artifacts/conv1-h16-bs6/channel_reducer.pt"
 VIDEO_PATH = "models/action_12/clip_1.mp4"  # Replace with your video path
 DEPTH_PATH = "models/action_12/depth/clip_1.mp4"  # Replace with your depth video path
 OUTPUT_PATH = "models/reduced_video"  # Replace with desired output path

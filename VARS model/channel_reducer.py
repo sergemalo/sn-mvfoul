@@ -115,6 +115,8 @@ class ChannelReducer(nn.Module):
             torch.Tensor: Output tensor with reduced channels (batch_size, views, out_channels, frames, height, width)
         """
         original_shape = x.shape
+        scale = self.data_range[1] - self.data_range[0]
+        offset = self.data_range[0]
 
         # ------------------------------------------------------------
         # Check if we have the expected 6D tensor
@@ -135,14 +137,15 @@ class ChannelReducer(nn.Module):
         reshaped = x.permute(0, 1, 3, 2, 4, 5)
         reshaped = reshaped.reshape(batch_size * num_views * frames, channels, height, width)
         
+        # Reduce values to 0 and 1
+        reshaped = reshaped.add(-offset).div(scale)
+
         # Apply channel reduction
         reduced = self.conv1(reshaped)
         reduced = self.activation(reduced)
         reduced = self.conv2(reduced)
         reduced = self.output_activation(reduced)
         # Values are between 0 and 1, we need to scale it to 0 and 255
-        scale = self.data_range[1] - self.data_range[0]
-        offset = self.data_range[0]
         reduced = reduced.mul(scale).add(offset)
 
         # Reshape back to original dimensions but with reduced channels
@@ -307,7 +310,15 @@ class ChannelReducer(nn.Module):
         """
         # Load the saved dictionary
         saved_dict = torch.load(path, map_location=map_location)
-        
+
+        # Load state dictionary
+        print(f"Loading state dictionary {saved_dict['state_dict'].keys()}")
+        print(f"Loading state dictionary {saved_dict['state_dict']['conv1.weight'].shape}")
+        print(f"Loading state dictionary {saved_dict['state_dict']['conv1.bias'].shape}")
+        print(f"Loading state dictionary {saved_dict['state_dict']['conv2.weight'].shape}")
+        print(f"Loading state dictionary {saved_dict['state_dict']['conv2.bias'].shape}")
+        print(f"Loading state dictionary {saved_dict['metadata'].keys()}")
+
         # Check if we have metadata
         if 'metadata' in saved_dict:
             metadata = saved_dict['metadata']
@@ -329,7 +340,6 @@ class ChannelReducer(nn.Module):
                 hidden_channels=32  # Default value
             )
         
-        # Load state dictionary
         model.load_state_dict(saved_dict['state_dict'])
         
         return model
