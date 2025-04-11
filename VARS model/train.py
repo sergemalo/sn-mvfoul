@@ -29,7 +29,7 @@ def print_results(results, dataset, wandb_run, epoch, channel_importance = None)
                     f"{dataset}_acc_action": round(results["accuracy_action"], 3), 
                     f"{dataset}_acc_offense_severity": round(results["accuracy_offence_severity"], 3),
                     f"{dataset}_BA_action": round(results["balanced_accuracy_action"], 3),
-                    f"{dataset}_BA_offense_severity": round(results["accuracy_offence_severity"], 3)}
+                    f"{dataset}_BA_offense_severity": round(results["balanced_accuracy_offence_severity"], 3)}
                     )
         
         if (dataset == "Train" and channel_importance is not None):
