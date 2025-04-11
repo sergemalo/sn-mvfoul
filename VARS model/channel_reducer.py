@@ -136,9 +136,15 @@ class ChannelReducer(nn.Module):
         # Reshape to (batch_size * num_views * frames, channels, height, width)
         reshaped = x.permute(0, 1, 3, 2, 4, 5)
         reshaped = reshaped.reshape(batch_size * num_views * frames, channels, height, width)
-        
-        # Reduce values to 0 and 1
-        reshaped = reshaped.add(-offset).div(scale)
+
+        # Print min and max of the input tensor
+        # print(f"Input tensor min before rescale: {x.min().item()}, max: {x.max().item()}")
+
+        # Reduce values from 0 to 255  to -1 and 1
+        reshaped = reshaped.add(-offset).div(scale).mul(2).add(-1)
+
+        # Print min and max of the input tensor
+        # print(f"Input tensor min after rescale: {reshaped.min().item()}, max: {reshaped.max().item()}")
 
         # Apply channel reduction
         reduced = self.conv1(reshaped)
@@ -147,6 +153,9 @@ class ChannelReducer(nn.Module):
         reduced = self.output_activation(reduced)
         # Values are between 0 and 1, we need to scale it to 0 and 255
         reduced = reduced.mul(scale).add(offset)
+
+        # Print min and max of the output tensor
+        # print(f"Output tensor min: {reduced.min().item()}, max: {reduced.max().item()}")
 
         # Reshape back to original dimensions but with reduced channels
         result = reduced.reshape(batch_size, num_views, frames, self.out_channels, height, width)
