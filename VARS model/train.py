@@ -15,6 +15,8 @@ def print_results(results, dataset, wandb_run, epoch):
     print("  Action class BA:       {:.3f} %".format(results["balanced_accuracy_action"]))
     print("  Offence severity BA:   {:.3f} %".format(results["balanced_accuracy_offence_severity"]))
 
+    if wandb_run is None:
+        return
     # Log the statistics to Wandb 
     # Test set -> Summary statistic
     if (dataset == "Test"):
@@ -68,7 +70,8 @@ def trainer(train_loader,
             ):
     
 
-    set_wandb_metrics(wandb_run)
+    if wandb_run is not None:    
+        set_wandb_metrics(wandb_run)
 
     for epoch in range(epoch_start, max_epochs+1): # [epoch_start, max_epoch]
         
@@ -161,7 +164,7 @@ def trainer(train_loader,
         if (model_artifact != None):
             model_artifact.add_file(path_aux)
 
-    if (model_artifact != None):
+    if (model_artifact != None and wandb_run != None):
         wandb_run.log_artifact(model_artifact)
     print("###################### TRAINER DONE ###################")
 

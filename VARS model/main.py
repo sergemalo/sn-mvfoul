@@ -212,7 +212,7 @@ def main(args, wandb_run, model_artifact):
 
     print(f"--> Creating the model: {pre_model} with pooling: {pooling_type}")
     model = MVNetwork(net_name=pre_model, agr_type=pooling_type)
-    #model = torch.nn.DataParallel(model)
+    model = torch.nn.DataParallel(model)
     model = model.cuda()
 
     if path_to_model_weights != "":
@@ -345,7 +345,7 @@ if __name__ == '__main__':
     parser.add_argument("--only_evaluation", required=False, type=int, default=3, help="Only evaluation, 0 = on test set, 1 = on chall set, 2 = on both sets and 3 = train/valid/test")
     parser.add_argument("--path_to_model_weights", required=False, type=str, default="", help="Path to the model weights")
 
-    parser.add_argument("--wandb_run_name", required=True, type=str, help="Wandb run name")
+    parser.add_argument("--wandb_run_name", required=False, type=str, help="Wandb run name", default="")
     parser.add_argument("--wandb_saving_model_name", required=False, type=str, default="", help="Name of the Artifact to save the checkpoints in")
 
     parser.add_argument("--seed", required=False, type=int, default=42, help="Seed")
@@ -355,24 +355,28 @@ if __name__ == '__main__':
     ## Checking if arguments are valid
     checkArguments(args)
 
-    # Initialize Wandb
-    wandb_run = wandb.init(project="IFT6759_MVFoulR", 
-                           name=args.wandb_run_name,
-                           config= {"Pre-Trained model": args.pre_model,
-                                    "Pooling type": args.pooling_type,
-                                    "Batch size": args.batch_size,
-                                    "Learning rate": args.LR,
-                                    "Max epochs": args.max_epochs,
-                                    "Data augmentation": args.data_aug,
-                                    "Number of views": args.num_views,
-                                    "FPS": args.fps,
-                                    "Seed": args.seed}
-                            )
-    
-    if (args.wandb_saving_model_name != ""):
-        model_artifact = wandb.Artifact(name=args.wandb_saving_model_name,
-                                        type="model")
+    if args.wandb_run_name != "":
+        # Initialize Wandb
+        wandb_run = wandb.init(project="IFT6759_MVFoulR", 
+                            name=args.wandb_run_name,
+                            config= {"Pre-Trained model": args.pre_model,
+                                        "Pooling type": args.pooling_type,
+                                        "Batch size": args.batch_size,
+                                        "Learning rate": args.LR,
+                                        "Max epochs": args.max_epochs,
+                                        "Data augmentation": args.data_aug,
+                                        "Number of views": args.num_views,
+                                        "FPS": args.fps,
+                                        "Seed": args.seed}
+                                )
+        
+        if (args.wandb_saving_model_name != ""):
+            model_artifact = wandb.Artifact(name=args.wandb_saving_model_name,
+                                            type="model")
+        else:
+            model_artifact = None
     else:
+        wandb_run = None
         model_artifact = None
 
 
@@ -387,4 +391,6 @@ if __name__ == '__main__':
     print('Starting main function')
     main(args, wandb_run, model_artifact)
     print(f'Total Execution Time: {time.strftime("%H:%M:%S", time.gmtime(time.time()-start))}')
-    wandb_run.finish()
+
+    if wandb_run != None: # Close the wandb run
+        wandb_run.finish()
